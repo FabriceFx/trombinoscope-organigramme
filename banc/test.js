@@ -188,9 +188,14 @@ class FauxDiapo {
   }
   insertLine(category, x1, y1, x2, y2) {
     // insertLine prend deux points, pas une largeur/hauteur : une ligne
-    // parfaitement verticale ou horizontale (dx=0 ou dy=0) est un
-    // connecteur tout à fait normal — un responsable avec un seul
-    // subordonné en produit un à chaque génération. Rien à valider ici.
+    // STRAIGHT parfaitement verticale ou horizontale est un connecteur
+    // normal. Mais le vrai Slides refuse un connecteur BENT dont la boîte
+    // englobante a une largeur nulle (deux points alignés verticalement) —
+    // « The width should not be zero. », découvert en conditions réelles
+    // sur un responsable avec un seul subordonné (v0.4.2).
+    if (category === 'BENT' && Math.abs(x2 - x1) === 0) {
+      throw new Error(`The width should not be zero. (x1=${x1}, x2=${x2})`);
+    }
     const ligne = {
       category, x1, y1, x2, y2,
       getLineFill() { return { setSolidFill() { return this; } }; },
@@ -513,6 +518,35 @@ console.log('\nregenererOrganigramme_ — petite équipe : un seul slide, toutes
   verifier('une boîte par personne', presentation.getSlides()[1].shapes.length, 3);
   verifier('un connecteur par lien hiérarchique', presentation.getSlides()[1].lines.length, 2);
   verifier('Config reçoit l’identifiant de la présentation', lireConfig_(classeur).organigrammeId, rapport.id);
+}
+
+console.log('\nregenererOrganigramme_ — un responsable avec un seul subordonné (connecteur parfaitement vertical)');
+{
+  // Régression (v0.4.2) : un enfant unique est centré exactement sous son
+  // parent, donc le connecteur BENT reliant les deux a une largeur nulle —
+  // ce que Google Slides refuse (« The width should not be zero. »),
+  // contrairement à STRAIGHT qui l'acceptait. C'est ce cas précis, pas une
+  // hiérarchie large, qui a fait échouer la régénération en conditions
+  // réelles alors que le trombinoscope, lui, se générait sans problème.
+  const classeur = new FauxClasseur(['Config']);
+  classeurActif = classeur;
+  creerOngletConfig_(classeur);
+  const config = lireConfig_(classeur);
+
+  const racine = personne('Alix', 'Dupont', 'racine@exemple.fr', 'DG', 'Direction');
+  const seulEnfant = personne('Marc', 'Girard', 'enfant@exemple.fr', 'Directeur', 'Direction', 'racine@exemple.fr');
+
+  let leve = null;
+  let rapport = null;
+  try { rapport = regenererOrganigramme_(config, [racine, seulEnfant]); } catch (e) { leve = e; }
+  verifier('aucune exception malgré l’alignement parfait', leve, null);
+
+  const presentation = presentationsFake.get(rapport.id);
+  const ligne = presentation.getSlides()[1].lines[0];
+  // > 0.05 plutôt que >= 0.1 : 100.1 - 100 vaut 0.09999999999999432 en
+  // JavaScript (0.1 n'est pas représentable exactement en binaire) — le
+  // nudge est bien appliqué, seule une égalité stricte à 0.1 serait fausse.
+  verifier('le connecteur garde une largeur strictement positive', Math.abs(ligne.x2 - ligne.x1) > 0.05, true);
 }
 
 console.log('\nregenererOrganigramme_ — organisation large : vue d’ensemble + un slide par service');

@@ -14,7 +14,7 @@
  * numéro : un déploiement Apps Script sert une copie figée du code, et ce
  * numéro est le seul moyen de savoir laquelle tourne.
  */
-const VERSION_ = '0.4.1';
+const VERSION_ = '0.4.2';
 
 const NOM_ONGLET_RH_ = 'RH';
 const NOM_ONGLET_CONFIG_ = 'Config';

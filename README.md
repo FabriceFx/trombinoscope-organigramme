@@ -1,4 +1,8 @@
+<a id="francais"></a>
+
 # Trombinoscope & organigramme
+
+📖 Français (ci-dessous) · [🇬🇧 English version](#english)
 
 Génère automatiquement, à partir d'un onglet RH, un trombinoscope et un
 organigramme sous forme de deux présentations Google Slides — régénérables à
@@ -32,7 +36,8 @@ régénéré à chaque installation.
 Les en-têtes et les clés des onglets `RH` et `Config`, ainsi que les valeurs
 des listes déroulantes (« RH manuel », « Dossier Drive », etc.), restent en
 français dans les deux cas : ce sont des identifiants dont dépend la lecture
-du classeur par le code, pas de la prose à traduire.
+du classeur par le code, pas de la prose à traduire. (Ce README, lui, est
+disponible dans les deux langues — voir la version anglaise plus bas.)
 
 ## Présentation soignée, pas seulement un export brut
 
@@ -163,3 +168,171 @@ synchronisation annuaire (fusion dans RH, reprise après interruption sans
 perte ni doublon), la non-duplication des déclencheurs et le changement de
 langue de bout en bout (menu, guide, dialogues, présentations). À lancer
 avant chaque `clasp push`.
+
+---
+
+<a id="english"></a>
+
+# Staff Directory & Org Chart
+
+📖 English (below) · [🇫🇷 Version française](#trombinoscope--organigramme)
+
+Automatically generates, from an HR tab, a staff directory and an org chart
+as two Google Slides presentations — regenerable on demand or daily, without
+ever breaking the link to files already shared.
+
+## Two sources for the headcount
+
+- **Manual HR** (default): you fill in and correct the `RH` tab yourself.
+  No special permission required.
+- **Google Workspace directory**: `RH` becomes a mirror of the directory,
+  resynced on every regeneration (First name, Last name, Title, Department,
+  Manager, Active). A manual edit to these columns does not survive the
+  next sync — fix the data in the directory, not in the tab. The `Photo`
+  column, however, is **never** synced, in either mode: always editable by
+  hand. Syncing requires a Workspace admin account (or a delegated one).
+
+The choice is made in `Config > Source de l'effectif`, and can be changed at
+any time without touching the code. Photos follow the same principle,
+separately (`Config > Source des photos`: Drive folder or Workspace profile
+photo).
+
+## Interface in French or English
+
+`Config > Langue de l'interface` (“Français” or “English”) drives the menu,
+dialog boxes, the `Guide` tab, and the text of the generated presentations
+(title page, slide titles, alert messages). Changing this setting takes
+effect immediately, including on the `Guide`, which is regenerated on every
+install.
+
+The headers and keys of the `RH` and `Config` tabs, as well as the dropdown
+values (“RH manuel”, “Dossier Drive”, etc.), stay in French either way: they
+are identifiers the code depends on to read the spreadsheet, not prose to
+translate. (This README itself is available in both languages — see the
+French version above.)
+
+## A polished presentation, not just a raw export
+
+Each presentation opens with a title page (company name if set in `Config`,
+headcount, generation date) followed by a legend of department colors — the
+same color found on the org chart's borders and under the staff directory's
+photos. The org chart uses elbow connectors, the usual visual convention for
+an org chart rather than a utilitarian rendering made of diagonal lines.
+Every dialog box in the menu offers a direct link to each presentation,
+without having to go look for it in `Config`.
+
+## Why two presentations, not one
+
+A staff directory is browsed like a list; an org chart is read like a map.
+Combining them into a single file would have forced a compromise on both
+layouts. Each keeps its own file, its own stable URL (regenerating never
+changes the file's identifier, so never the sharing permissions already
+granted) and its own pagination logic.
+
+## Installation
+
+This project is a script **bound to a Google Sheets spreadsheet** — it does
+not work standalone, and that's not an oversight: every regeneration runs
+with the permissions of the person who triggered it.
+
+1. Create a Google Sheet, then **Extensions > Apps Script** to attach a
+   project to it.
+2. Get its script ID (**Project Settings**, or from the URL
+   `.../projects/<ID>/edit`) and create a `.clasp.json` file at the root of
+   this folder:
+   ```json
+   { "scriptId": "YOUR_SCRIPT_ID", "rootDir": "apps-script" }
+   ```
+3. Push the code:
+   ```bash
+   clasp push
+   ```
+4. Open the Sheet, reload it: the **RH** menu appears.
+5. **RH > Installer les onglets** (Set up the tabs), then adjust the
+   `Config` tab:
+   - leave “Source de l'effectif” at `RH manuel` and fill in the `RH` tab
+     yourself, **or**
+   - switch it to `Annuaire Google Workspace` and run **RH > Synchroniser
+     l'effectif depuis l'annuaire** (Sync headcount from directory) to
+     check the result before regenerating the presentations.
+6. **RH > Régénérer maintenant** (Regenerate now).
+
+To try it with a richer fictional headcount (30 people, 4 hierarchy levels)
+before entering your real data: see
+[exemples/effectif-demo.csv](exemples/effectif-demo.csv).
+
+## The RH tab
+
+| Column | Content |
+|---|---|
+| Prénom, Nom, Email, Poste, Service (First/Last name, Email, Title, Department) | Free text. |
+| Manager | Email of the person they report to. Blank = top of the hierarchy. |
+| Photo | File name in the photo folder (optional). |
+| Actif (Active) | `Non` to exclude a row without deleting it (e.g. someone who left). |
+
+A photo left blank is found by convention: full email, then the local part
+of the email, then “Prénom Nom” (First Last), on the `.jpg`/`.jpeg`/`.png`
+extensions. If missing, it's replaced with an avatar showing initials — an
+incomplete generation is still more useful than one that fails.
+
+## Before sharing the Sheet
+
+The daily trigger runs with the permissions of the person who enabled it
+(**RH > Activer la mise à jour quotidienne** / Enable daily update), not
+with those of whoever opens the Sheet afterward. Enable it with an account
+that has lasting access to the photo folder.
+
+## Scopes requested
+
+- `spreadsheets.currentonly` — this spreadsheet only.
+- `presentations` — create and edit the two generated presentations.
+- `drive.readonly` — read the existing photo folder. This scope cannot be
+  narrowed further here: the folder isn't created by the script, so
+  `drive.file` wouldn't be enough. It's read-only: no call in the project
+  modifies or deletes anything on Drive (checkable with
+  `grep -r "\.setTrashed\|removeFile\|\.remove()" apps-script/` — only
+  obsolete slides of the generated presentations are removed, never a
+  Drive file).
+- `admin.directory.user.readonly` — read the domain directory (names,
+  titles, departments, managers, profile photos) for “Annuaire Google
+  Workspace” mode. **Cost to know before authorizing the script**: Apps
+  Script requests every declared scope at first authorization, regardless
+  of which mode is actually chosen afterward in `Config` — even staying on
+  “RH manuel”, whoever authorizes this script accepts that Google could in
+  theory use it to read the entire domain directory. Read-only: no call in
+  the project modifies the directory
+  (`grep -r "AdminDirectory\.Users\.\(insert\|update\|patch\|delete\)" apps-script/`
+  should find nothing).
+- `script.scriptapp` — set/remove the daily trigger and the sync-resume
+  trigger.
+- `script.container.ui` — the menu and dialog boxes.
+
+## Known limitations (v0.4)
+
+- Non-square photos are force-cropped to a square, with no smart cropping.
+- An org chart too wide to fit legibly on one slide switches to an overview
+  + one slide per department; within a single very large department, the
+  layout can still be dense.
+- No history of removed people: `Actif = Non` excludes them from generation
+  without deleting the row. In directory mode, a person removed from the
+  directory is not automatically removed from `RH` — disable or delete the
+  row by hand.
+- In directory mode, a very large headcount can take several minutes before
+  regeneration starts (automatic resume in one-minute steps, nothing to
+  redo).
+- Translation covers what the tool displays (menu, dialogs, guide,
+  presentations); the headers and keys of the `RH`/`Config` tabs stay in
+  French in both languages (see “Interface in French or English” above).
+
+## Test suite
+
+```bash
+node banc/test.js
+```
+
+Simulates Sheets, Slides, Drive, the Google Workspace directory, and
+triggers. Covers building the hierarchy tree (unmatched managers, cycles),
+the geometric layout, pagination, directory sync (merging into RH, resuming
+after an interruption without loss or duplication), trigger
+non-duplication, and switching languages end to end (menu, guide, dialogs,
+presentations). Run before every `clasp push`.
