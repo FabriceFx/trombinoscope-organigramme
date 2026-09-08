@@ -175,7 +175,7 @@ avant chaque `clasp push`.
 
 # Staff Directory & Org Chart
 
-📖 English (below) · [🇫🇷 Version française](#trombinoscope--organigramme)
+📖 English (below) · [🇫🇷 Version française](#francais)
 
 Automatically generates, from an HR tab, a staff directory and an org chart
 as two Google Slides presentations — regenerable on demand or daily, without

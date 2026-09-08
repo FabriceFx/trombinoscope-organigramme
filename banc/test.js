@@ -516,18 +516,22 @@ console.log('\nregenererOrganigramme_ — petite équipe : un seul slide, toutes
   const presentation = presentationsFake.get(rapport.id);
   verifier('couverture + un seul slide de contenu pour une petite équipe', presentation.getSlides().length, 2);
   verifier('une boîte par personne', presentation.getSlides()[1].shapes.length, 3);
-  verifier('un connecteur par lien hiérarchique', presentation.getSlides()[1].lines.length, 2);
+  // Peigne : 1 trait sous le parent + 1 barre horizontale + 1 descente par
+  // enfant. Un connecteur unique par enfant laisserait Slides placer chaque
+  // coude où il veut — c'est ce que faisait la v0.4.4 (voir dessinerPeigne_).
+  verifier('un peigne : stub + barre + une descente par enfant', presentation.getSlides()[1].lines.length, 4);
   verifier('Config reçoit l’identifiant de la présentation', lireConfig_(classeur).organigrammeId, rapport.id);
 }
 
 console.log('\nregenererOrganigramme_ — un responsable avec un seul subordonné (connecteur parfaitement vertical)');
 {
-  // Régression (v0.4.2) : un enfant unique est centré exactement sous son
-  // parent, donc le connecteur BENT reliant les deux a une largeur nulle —
-  // ce que Google Slides refuse (« The width should not be zero. »),
-  // contrairement à STRAIGHT qui l'acceptait. C'est ce cas précis, pas une
-  // hiérarchie large, qui a fait échouer la régénération en conditions
-  // réelles alors que le trombinoscope, lui, se générait sans problème.
+  // Régression (v0.4.2, réécrite en v0.5.0) : un enfant unique est centré
+  // exactement sous son parent. Slides refuse une ligne dont la boîte
+  // englobante est plate (« The width should not be zero. ») — c'est ce cas
+  // précis, pas une hiérarchie large, qui a fait échouer la régénération en
+  // conditions réelles alors que le trombinoscope se générait sans problème.
+  // Sans barre horizontale à tracer, le peigne se réduit ici à deux
+  // verticales : le stub sous le parent et la descente vers l'enfant.
   const classeur = new FauxClasseur(['Config']);
   classeurActif = classeur;
   creerOngletConfig_(classeur);
@@ -542,11 +546,37 @@ console.log('\nregenererOrganigramme_ — un responsable avec un seul subordonn�
   verifier('aucune exception malgré l’alignement parfait', leve, null);
 
   const presentation = presentationsFake.get(rapport.id);
-  const ligne = presentation.getSlides()[1].lines[0];
+  verifier('pas de barre horizontale quand l’enfant est seul : stub + descente',
+    presentation.getSlides()[1].lines.length, 2);
+}
+
+console.log('\ntracerSegment_ — aucun segment plat, sur aucune diapositive');
+{
+  // L'invariant qui compte, plus fort qu'un cas particulier : quelle que
+  // soit la forme de la hiérarchie, aucun segment livré à Slides ne doit
+  // avoir une largeur *ni* une hauteur nulle. Le peigne n'est fait que de
+  // segments plats par nature — c'est tracerSegment_ qui les décale.
+  const classeur = new FauxClasseur(['Config']);
+  classeurActif = classeur;
+  creerOngletConfig_(classeur);
+  const config = lireConfig_(classeur);
+
+  const csv = fs.readFileSync(path.join(__dirname, '..', 'exemples', 'effectif-demo.csv'), 'utf8')
+    .trim().split('\n').slice(1);
+  const actives = csv.map((l) => l.split(','))
+    .filter((c) => c[7] !== 'Non')
+    .map((c) => personne(c[0], c[1], c[2], c[3], c[4], c[5]));
+
+  const rapport = regenererOrganigramme_(config, actives);
+  const presentation = presentationsFake.get(rapport.id);
+  const toutesLesLignes = presentation.getSlides().flatMap((d) => d.lines);
   // > 0.05 plutôt que >= 0.1 : 100.1 - 100 vaut 0.09999999999999432 en
-  // JavaScript (0.1 n'est pas représentable exactement en binaire) — le
-  // nudge est bien appliqué, seule une égalité stricte à 0.1 serait fausse.
-  verifier('le connecteur garde une largeur strictement positive', Math.abs(ligne.x2 - ligne.x1) > 0.05, true);
+  // JavaScript (0.1 n'est pas représentable exactement en binaire).
+  const plates = toutesLesLignes.filter(
+    (l) => Math.abs(l.x2 - l.x1) <= 0.05 || Math.abs(l.y2 - l.y1) <= 0.05
+  );
+  verifier('des segments sont bien tracés sur le jeu de démonstration', toutesLesLignes.length > 20, true);
+  verifier('aucun segment plat parmi eux', plates.length, 0);
 }
 
 console.log('\nregenererOrganigramme_ — organisation large : vue d’ensemble + un slide par service');

@@ -3,6 +3,45 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Ce projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.0] - 2026-09-08
+
+### Changé
+
+- **Connecteurs de l'organigramme tracés en peigne**, au lieu d'un
+  connecteur `BENT` par enfant : un trait vertical sous le parent, une barre
+  horizontale à mi-hauteur entre les deux niveaux, puis une descente
+  verticale vers chaque enfant. Jusqu'ici Slides plaçait chaque coude où il
+  voulait — sur une fratrie de quatre, les segments horizontaux tombaient à
+  des hauteurs différentes et l'un d'eux frôlait le haut des boîtes. Les
+  trois segments sont maintenant des `STRAIGHT` dont le projet fixe chaque
+  coordonnée. La barre est omise quand l'enfant est seul.
+
+### Corrigé
+
+- Plus aucun segment n'est livré à Slides avec une boîte englobante plate :
+  `tracerSegment_` décale l'extrémité de 0,1 pt sur l'axe dégénéré, ce qui
+  supprime à la racine la famille d'erreurs « The width should not be
+  zero. » (deux occurrences en conditions réelles, v0.4.1 et v0.4.2). Le
+  banc d'essai vérifie désormais cet invariant sur toutes les diapositives
+  générées, pas seulement sur le cas qui l'avait révélé.
+
+## [0.4.4] - 2026-09-08
+
+### Changé
+
+- Connecteurs de l'organigramme allégés : épaisseur réduite (1,5 → 0,75 pt)
+  et gris plus clair (`#9aa0a6` → `#c4c7c5`), pour un tracé plus fin, moins
+  appuyé visuellement que le premier rendu.
+
+## [0.4.3] - 2026-09-08
+
+### Ajouté
+
+- `README.md` bilingue français / anglais, dans un seul fichier (section
+  française puis anglaise, liens de bascule en tête de chacune) — cohérent
+  avec l'interface de l'outil elle-même, disponible dans les deux langues
+  depuis la v0.4.0.
+
 ## [0.4.2] - 2026-09-08
 
 ### Corrigé

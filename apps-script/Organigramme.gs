@@ -50,6 +50,58 @@ const disposerArbre_ = (noeud) => {
   return noeud._largeur;
 };
 
+const COULEUR_CONNECTEUR_ = '#c4c7c5';
+const EPAISSEUR_CONNECTEUR_ = 0.75;
+
+/**
+ * Écart minimal imposé aux deux extrémités d'un segment.
+ *
+ * Slides refuse une ligne dont la boîte englobante est plate (« The width
+ * should not be zero. ») — c'est ce qui a fait échouer deux générations en
+ * conditions réelles. Or un peigne n'est fait que de segments plats : les
+ * descentes sont verticales, la barre est horizontale. On décale donc
+ * systématiquement l'extrémité de 0,1 point sur l'axe dégénéré : invisible
+ * à l'affichage (0,1 pt sur une descente de 20 pt, soit 0,3° d'inclinaison),
+ * suffisant pour l'API.
+ */
+const ECART_MIN_SEGMENT_ = 0.1;
+
+const tracerSegment_ = (diapo, x1, y1, x2, y2) => {
+  const xFin = Math.abs(x2 - x1) < ECART_MIN_SEGMENT_ ? x1 + ECART_MIN_SEGMENT_ : x2;
+  const yFin = Math.abs(y2 - y1) < ECART_MIN_SEGMENT_ ? y1 + ECART_MIN_SEGMENT_ : y2;
+  const ligne = diapo.insertLine(SlidesApp.LineCategory.STRAIGHT, x1, y1, xFin, yFin);
+  ligne.getLineFill().setSolidFill(COULEUR_CONNECTEUR_);
+  ligne.setWeight(EPAISSEUR_CONNECTEUR_);
+  return ligne;
+};
+
+/**
+ * Connecteurs en peigne : un court trait vertical sous le parent, une barre
+ * horizontale à mi-hauteur, puis un trait vertical qui redescend vers chaque
+ * enfant.
+ *
+ * C'est la convention visuelle d'un organigramme, et surtout c'est *nous*
+ * qui plaçons le coude. La version précédente posait un connecteur `BENT`
+ * par enfant et laissait Slides décider : chaque coude tombait à une hauteur
+ * différente, certains segments horizontaux frôlant le haut des boîtes.
+ * Trois segments droits maîtrisés valent mieux qu'un connecteur intelligent
+ * qu'on ne contrôle pas.
+ *
+ * La barre est omise quand tous les enfants sont alignés sous le parent
+ * (enfant unique) : le stub et la descente se rejoignent alors en une seule
+ * verticale continue.
+ */
+const dessinerPeigne_ = (diapo, xParent, yParent, xEnfants, yEnfants) => {
+  const yBarre = (yParent + yEnfants) / 2;
+  tracerSegment_(diapo, xParent, yParent, xParent, yBarre);
+
+  const xMin = Math.min(xParent, ...xEnfants);
+  const xMax = Math.max(xParent, ...xEnfants);
+  if (xMax - xMin > ECART_MIN_SEGMENT_) tracerSegment_(diapo, xMin, yBarre, xMax, yBarre);
+
+  xEnfants.forEach((x) => tracerSegment_(diapo, x, yBarre, x, yEnfants));
+};
+
 /**
  * Dessine récursivement un nœud et ses enfants sur une diapositive, à
  * l'échelle donnée, avec l'origine (coin gauche du sous-arbre complet) à
@@ -88,26 +140,16 @@ const dessinerNoeud_ = (diapo, noeud, origineX, origineY, echelle) => {
   }
 
   const yEnfants = noeud.personne ? yBas + ESPACE_V_ * echelle : origineY;
-  (noeud.enfants || []).forEach((enfant) => {
+  const positions = (noeud.enfants || []).map((enfant) => {
     const origineXEnfant = origineX + enfant._decalage * echelle;
-    const xCentreEnfant = origineXEnfant + enfant._x * echelle;
-
-    if (noeud.personne) {
-      // BENT plutôt que STRAIGHT : un connecteur en coude (vertical puis
-      // horizontal) est la convention visuelle d'un organigramme, une
-      // ligne diagonale se lit comme une erreur de mise en page.
-      // Mais Slides refuse un BENT de largeur nulle (enfant unique aligné),
-      // on décale donc de 0.1 point si l'alignement est parfait.
-      const xCible = Math.abs(xCentre - xCentreEnfant) < 0.1 ? xCentreEnfant + 0.1 : xCentreEnfant;
-      const ligne = diapo.insertLine(
-        SlidesApp.LineCategory.BENT, xCentre, yBas, xCible, yEnfants
-      );
-      ligne.getLineFill().setSolidFill('#9aa0a6');
-      ligne.setWeight(1.5);
-    }
-
-    dessinerNoeud_(diapo, enfant, origineXEnfant, yEnfants, echelle);
+    return { enfant, origineXEnfant, xCentre: origineXEnfant + enfant._x * echelle };
   });
+
+  if (noeud.personne && positions.length > 0) {
+    dessinerPeigne_(diapo, xCentre, yBas, positions.map((p) => p.xCentre), yEnfants);
+  }
+
+  positions.forEach((p) => dessinerNoeud_(diapo, p.enfant, p.origineXEnfant, yEnfants, echelle));
 
   return { x: xCentre, yBas };
 };
