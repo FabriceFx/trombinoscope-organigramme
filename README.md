@@ -9,6 +9,9 @@ organigramme sous forme de deux présentations Google Slides — régénérables
 la demande ou chaque jour, sans jamais casser le lien vers les fichiers déjà
 partagés.
 
+![Aperçu du trombinoscope](captures/Capture%201.png)
+![Aperçu de l'organigramme](captures/Capture%202.png)
+
 ## Deux sources pour l'effectif
 
 - **RH manuel** (par défaut) : vous complétez et corrigez l'onglet `RH`
@@ -180,6 +183,9 @@ avant chaque `clasp push`.
 Automatically generates, from an HR tab, a staff directory and an org chart
 as two Google Slides presentations — regenerable on demand or daily, without
 ever breaking the link to files already shared.
+
+![Staff directory preview](captures/Capture%201.png)
+![Org chart preview](captures/Capture%202.png)
 
 ## Two sources for the headcount
 
