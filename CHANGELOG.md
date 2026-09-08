@@ -3,6 +3,35 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Ce projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.3.0] - 2026-09-08
+
+### Ajouté
+
+- Page de titre sur les deux présentations générées (bandeau de couleur,
+  nom de l'entreprise si renseigné dans `Config`, effectif et date de
+  génération), avec une légende des couleurs de service — jusqu'ici la
+  couleur des bordures et des avatars codait le service sans que ça
+  s'explique nulle part dans le document.
+- Connecteurs en coude (`LineCategory.BENT`) dans l'organigramme au lieu de
+  lignes diagonales, et bordures des boîtes plus marquées : convention
+  visuelle standard d'un organigramme plutôt qu'un rendu utilitaire.
+- Liseré de couleur de service sous chaque photo du trombinoscope, en écho
+  à la légende de la page de titre.
+- Toutes les boîtes de dialogue du menu (installation, régénération,
+  synchronisation, activation du déclencheur, à propos) sont passées de
+  `Ui.alert` à une boîte HTML cohérente (`Dialogues.gs`), avec des liens
+  cliquables qui ouvrent directement le trombinoscope ou l'organigramme —
+  jusqu'ici, il fallait aller chercher le lien dans l'onglet `Config`.
+- `Config.nomEntreprise` (facultatif) : personnalise la page de titre.
+- Listes déroulantes sur `Config.sourceEffectif` et `Config.sourcePhotos`,
+  et sur `RH.Actif` : ces trois réglages pilotent le comportement du code
+  (`lireConfig_`, `lirePersonnes_`) sur la base d'une correspondance de
+  texte — une valeur mal recopiée à la main y basculait silencieusement sur
+  le comportement par défaut.
+- Couleurs d'onglet (RH bleu, Config gris, Guide vert) et fond distinct pour
+  les lignes générées automatiquement dans `Config`, pour un repère visuel
+  immédiat en ouvrant le classeur.
+
 ## [0.2.1] - 2026-09-08
 
 ### Ajouté

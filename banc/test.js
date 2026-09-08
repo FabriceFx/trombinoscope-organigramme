@@ -45,6 +45,12 @@ class FauxFeuille {
       getValue() { return this.getValues()[0][0]; },
       setFontWeight() { return this; },
       setFontSize() { return this; },
+      setBackground() { return this; },
+      setDataValidation(regle) {
+        f.validations = f.validations || {};
+        f.validations[`${r}:${c}`] = regle && regle.valeurs;
+        return this;
+      },
     };
   }
   appendRow(arr) { this.cells.push([...arr]); return this; }
@@ -55,6 +61,7 @@ class FauxFeuille {
   activate() { this.activee = true; return this; }
   hideSheet() { this.cachee = true; return this; }
   clearContents() { this.cells = []; return this; }
+  setTabColor(c) { this.couleurOnglet = c; return this; }
 }
 
 class FauxClasseur {
@@ -146,7 +153,11 @@ class FauxDiapo {
     const forme = {
       type, x, y, w, h,
       getFill() { return { setSolidFill() { return this; } }; },
-      getBorder() { return { getLineFill() { return { setSolidFill() { return this; } }; }, setTransparent() { return this; } }; },
+      getBorder() { return {
+        getLineFill() { return { setSolidFill() { return this; } }; },
+        setTransparent() { return this; },
+        setWeight() { return this; },
+      }; },
       getText() { return texte; },
     };
     this.shapes.push(forme);
@@ -219,13 +230,24 @@ const ScriptApp = {
 
 // ---- faux UI ---------------------------------------------------------------
 let dernierAlerte = null;
+let dernierDialogue = null;
 const ui = {
   alert: (...args) => { dernierAlerte = args; return 'OK'; },
+  showModalDialog: (sortie, titre) => { dernierDialogue = { titre, html: sortie.getContent() }; },
   ButtonSet: { OK: 'OK' },
   createMenu: () => {
     const m = { addItem() { return m; }, addSeparator() { return m; }, addToUi() { return m; } };
     return m;
   },
+};
+
+const HtmlService = {
+  createHtmlOutput: (html) => ({
+    html,
+    getContent() { return html; },
+    setWidth() { return this; },
+    setHeight() { return this; },
+  }),
 };
 
 let classeurActif = null;
@@ -237,16 +259,25 @@ const sandbox = {
     base64Decode: (s) => Buffer.from(s, 'base64'),
     newBlob: (octets, mime, nom) => ({ octets, mime, nom }),
   },
+  HtmlService,
   SpreadsheetApp: {
     getActive: () => classeurActif,
     getUi: () => ui,
     flush: () => {},
+    newDataValidation: () => {
+      let valeurs = null;
+      return {
+        requireValueInList(v) { valeurs = v; return this; },
+        setAllowInvalid() { return this; },
+        build() { return { valeurs }; },
+      };
+    },
   },
   DriveApp, SlidesApp, ScriptApp, AdminDirectory, PropertiesService,
 };
 vm.createContext(sandbox);
-for (const f of ['Commun.gs', 'Structure.gs', 'Organigramme.gs', 'Trombinoscope.gs', 'Annuaire.gs',
-  'Regeneration.gs', 'Declencheurs.gs', 'Installation.gs', 'Menu.gs']) {
+for (const f of ['Commun.gs', 'Dialogues.gs', 'Structure.gs', 'Presentation.gs', 'Organigramme.gs',
+  'Trombinoscope.gs', 'Annuaire.gs', 'Regeneration.gs', 'Declencheurs.gs', 'Installation.gs', 'Menu.gs']) {
   vm.runInContext(fs.readFileSync(P + f, 'utf8'), sandbox, { filename: f });
 }
 // Les `const` de portée globale ne deviennent pas des propriétés de l'objet
@@ -265,8 +296,8 @@ const { construireArbre_, compterSousArbre_ } = Object.fromEntries(
 const { disposerArbre_ } = Object.fromEntries(['disposerArbre_'].map((n) => [n, pris(n)]));
 const { regenererOrganigramme_ } = Object.fromEntries(['regenererOrganigramme_'].map((n) => [n, pris(n)]));
 const { regenererTrombinoscope_ } = Object.fromEntries(['regenererTrombinoscope_'].map((n) => [n, pris(n)]));
-const { installer, creerOngletConfig_ } = Object.fromEntries(
-  ['installer', 'creerOngletConfig_'].map((n) => [n, pris(n)])
+const { installer, creerOngletConfig_, ligneDeCleConfig_ } = Object.fromEntries(
+  ['installer', 'creerOngletConfig_', 'ligneDeCleConfig_'].map((n) => [n, pris(n)])
 );
 const { regenererMaintenant, regenererTout_ } = Object.fromEntries(
   ['regenererMaintenant', 'regenererTout_'].map((n) => [n, pris(n)])
@@ -443,9 +474,9 @@ console.log('\nregenererOrganigramme_ — petite équipe : un seul slide, toutes
   const rapport = regenererOrganigramme_(config, [dg, rh, rq]);
 
   const presentation = presentationsFake.get(rapport.id);
-  verifier('un seul slide pour une petite équipe', presentation.getSlides().length, 1);
-  verifier('une boîte par personne', presentation.getSlides()[0].shapes.length, 3);
-  verifier('un connecteur par lien hiérarchique', presentation.getSlides()[0].lines.length, 2);
+  verifier('couverture + un seul slide de contenu pour une petite équipe', presentation.getSlides().length, 2);
+  verifier('une boîte par personne', presentation.getSlides()[1].shapes.length, 3);
+  verifier('un connecteur par lien hiérarchique', presentation.getSlides()[1].lines.length, 2);
   verifier('Config reçoit l’identifiant de la présentation', lireConfig_(classeur).organigrammeId, rapport.id);
 }
 
@@ -462,8 +493,8 @@ console.log('\nregenererOrganigramme_ — organisation large : vue d’ensemble 
   const rapport = regenererOrganigramme_(config, [dg, ...branches]);
 
   const presentation = presentationsFake.get(rapport.id);
-  verifier('1 vue d’ensemble + 8 slides de service', presentation.getSlides().length, 9);
-  verifier('la vue d’ensemble montre la racine et les 8 responsables', presentation.getSlides()[0].shapes.length, 9);
+  verifier('couverture + 1 vue d’ensemble + 8 slides de service', presentation.getSlides().length, 10);
+  verifier('la vue d’ensemble montre la racine et les 8 responsables', presentation.getSlides()[1].shapes.length, 9);
 }
 
 console.log('\nregenererOrganigramme_ — hiérarchie à 4 niveaux réels : chaque niveau descend bien d’un cran');
@@ -486,8 +517,8 @@ console.log('\nregenererOrganigramme_ — hiérarchie à 4 niveaux réels : chaq
   const rapport = regenererOrganigramme_(config, [racine, n1, n2, n3a, n3b]);
 
   const presentation = presentationsFake.get(rapport.id);
-  verifier('tient sur un seul slide (5 personnes)', presentation.getSlides().length, 1);
-  const formes = presentation.getSlides()[0].shapes;
+  verifier('couverture + un seul slide de contenu (5 personnes)', presentation.getSlides().length, 2);
+  const formes = presentation.getSlides()[1].shapes;
   verifier('5 boîtes, une par personne', formes.length, 5);
   verifier('4 niveaux distincts de hauteur (n3a et n3b partagent le même niveau)',
     new Set(formes.map((f) => f.y)).size, 4);
@@ -524,8 +555,8 @@ console.log('\nJeu de données de démonstration — effectif-demo.csv reste coh
   const rapportOrg = regenererOrganigramme_(config, actives);
   verifier('aucune alerte sur ce jeu de données (pas de manager orphelin ni de cycle)', rapportOrg.alertes.length, 0);
   const presOrg = presentationsFake.get(rapportOrg.id);
-  verifier('vue d’ensemble + 4 directions (3 directeurs + le poste informatique en direct)',
-    presOrg.getSlides().length, 5);
+  verifier('couverture + vue d’ensemble + 4 directions (3 directeurs + le poste informatique en direct)',
+    presOrg.getSlides().length, 6);
 
   const rapportTrombi = regenererTrombinoscope_(config, actives);
   verifier('les 29 personnes actives sont traitées par le trombinoscope', rapportTrombi.nbPersonnes, 29);
@@ -560,9 +591,9 @@ console.log('\nregenererTrombinoscope_ — photo manquante remplacée par un ava
   verifier('1 photo manquante sur 2', rapport.nbPhotosManquantes, 1);
 
   const presentation = presentationsFake.get(rapport.id);
-  verifier('une image et un avatar sur le seul slide', presentation.getSlides()[0].images.length, 1);
+  verifier('une image sur le slide de contenu', presentation.getSlides()[1].images.length, 1);
   verifier('un avatar (ellipse) pour la photo manquante',
-    presentation.getSlides()[0].shapes.filter((s) => s.type === 'ELLIPSE').length, 1);
+    presentation.getSlides()[1].shapes.filter((s) => s.type === 'ELLIPSE').length, 1);
 }
 
 console.log('\nregenererTrombinoscope_ — pagination selon « personnes par ligne »');
@@ -575,7 +606,7 @@ console.log('\nregenererTrombinoscope_ — pagination selon « personnes par lig
   const gens = Array.from({ length: 25 }, (_, i) => personne(`P${i}`, 'X', `p${i}@exemple.fr`, 'Poste', 'Service'));
   const rapport = regenererTrombinoscope_(config, gens);
   const presentation = presentationsFake.get(rapport.id);
-  verifier('25 personnes sur 12/diapo → 3 diapos', presentation.getSlides().length, 3);
+  verifier('couverture + 25 personnes sur 12/diapo → 3 diapos de contenu', presentation.getSlides().length, 4);
 }
 
 // ---------------------------------------------------------------------------
@@ -755,6 +786,45 @@ console.log('\nregenererTout_ — source « annuaire » synchronise puis génèr
 }
 
 // ---------------------------------------------------------------------------
+console.log('\nregenererMaintenant — le compte rendu propose un lien direct vers chaque présentation');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+  const rh = classeur.getSheetByName('RH');
+  rh.appendRow(['Alix', 'Dupont', 'alix@exemple.fr', 'DG', 'Direction', '', '', 'Oui']);
+
+  dernierDialogue = null;
+  regenererMaintenant();
+  verifier('une boîte de dialogue HTML est affichée', dernierDialogue !== null, true);
+  verifier('le lien vers le trombinoscope est présent', dernierDialogue.html.includes('Ouvrir le trombinoscope'), true);
+  verifier('le lien vers l’organigramme est présent', dernierDialogue.html.includes('Ouvrir l’organigramme'), true);
+}
+
+console.log('\ninstaller — couleurs d’onglet cohérentes (repère visuel rapide)');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+  verifier('onglet RH en bleu', classeur.getSheetByName('RH').couleurOnglet, '#1a73e8');
+  verifier('onglet Config en gris', classeur.getSheetByName('Config').couleurOnglet, '#5f6368');
+  verifier('onglet Guide en vert', classeur.getSheetByName('Guide').couleurOnglet, '#188038');
+}
+
+console.log('\ninstaller — listes déroulantes sur les réglages qui pilotent l’aiguillage du code');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+  const config = classeur.getSheetByName('Config');
+  const ligneEffectif = ligneDeCleConfig_(config, CLES_CONFIG_.sourceEffectif);
+  const lignePhotos = ligneDeCleConfig_(config, CLES_CONFIG_.sourcePhotos);
+  verifier('« Source de l’effectif » limitée aux deux valeurs reconnues par lireConfig_',
+    config.validations[`${ligneEffectif}:2`], ['RH manuel', 'Annuaire Google Workspace']);
+  verifier('« Source des photos » limitée aux deux valeurs reconnues par lireConfig_',
+    config.validations[`${lignePhotos}:2`], ['Dossier Drive', 'Annuaire Google Workspace']);
+}
+
 console.log('\ncouleurService_ — déterministe, jamais aléatoire');
 {
   verifier('même service → même couleur', couleurService_('Qualité'), couleurService_('Qualité'));

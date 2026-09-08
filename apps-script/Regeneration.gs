@@ -34,42 +34,49 @@ const regenererTout_ = () => {
   return { trombinoscope, organigramme, nbPersonnes: personnes.length };
 };
 
-const resumerRapport_ = (rapport) => {
-  const lignes = [`${rapport.nbPersonnes} personne(s) active(s) dans l'onglet ${NOM_ONGLET_RH_}.`];
+const corpsRapportRegeneration_ = (rapport) => {
+  const lignes = [
+    `<p class="ligne">${badge_('ok', 'OK')} ${rapport.nbPersonnes} personne(s) active(s) dans l'onglet ${NOM_ONGLET_RH_}.</p>`,
+  ];
   if (rapport.trombinoscope.nbPhotosManquantes > 0) {
-    lignes.push(`Trombinoscope : ${rapport.trombinoscope.nbPhotosManquantes} photo(s) manquante(s), remplacée(s) par des initiales.`);
+    lignes.push(
+      `<p class="ligne">${badge_('attention', 'Photos')} ${rapport.trombinoscope.nbPhotosManquantes} ` +
+      'photo(s) manquante(s), remplacée(s) par des initiales.</p>'
+    );
   }
   if (rapport.organigramme.alertes && rapport.organigramme.alertes.length > 0) {
-    lignes.push('Organigramme — points à vérifier :');
-    rapport.organigramme.alertes.forEach((a) => lignes.push(`• ${a}`));
+    lignes.push(`<p class="ligne">${badge_('attention', 'Organigramme')} points à vérifier :</p>`);
+    lignes.push(`<ul class="points">${rapport.organigramme.alertes.map((a) => `<li>${echapper_(a)}</li>`).join('')}</ul>`);
   }
-  return lignes.join('\n');
+  lignes.push(
+    '<div class="boutons">' +
+    boutonOuvrir_('Ouvrir le trombinoscope', rapport.trombinoscope.url) +
+    boutonOuvrir_('Ouvrir l’organigramme', rapport.organigramme.url) +
+    '</div>'
+  );
+  return lignes.join('');
 };
 
 /** Point d'entrée menu : régénère et affiche un compte rendu à l'écran. */
 function regenererMaintenant() {
-  const ui = SpreadsheetApp.getUi();
   try {
     const rapport = regenererTout_();
     if (rapport.enAttente) {
-      ui.alert(
+      afficherDialogue_(
         'Synchronisation en cours',
-        'L’effectif est nombreux : la synchronisation de l’annuaire reprendra ' +
-        'automatiquement dans une minute, puis la régénération s’enchaînera d’elle-même.',
-        ui.ButtonSet.OK
+        `<p class="ligne">${badge_('attention', 'En attente')} L’effectif est nombreux : la synchronisation de ` +
+        'l’annuaire reprendra automatiquement dans une minute, puis la régénération s’enchaînera d’elle-même.</p>',
+        { hauteur: 190 }
       );
       return;
     }
-    ui.alert(
-      'Régénération terminée',
-      resumerRapport_(rapport),
-      ui.ButtonSet.OK
-    );
+    afficherDialogue_('Régénération terminée', corpsRapportRegeneration_(rapport));
   } catch (e) {
-    ui.alert(
+    afficherDialogue_(
       'La régénération a échoué',
-      `${e.message}\n\nCorrigez le point signalé puis relancez « Régénérer maintenant ».`,
-      ui.ButtonSet.OK
+      `<p class="ligne">${badge_('erreur', 'Échec')} ${echapper_(e.message)}</p>` +
+      '<p class="ligne">Corrigez le point signalé puis relancez « Régénérer maintenant ».</p>',
+      { hauteur: 220 }
     );
   }
 }

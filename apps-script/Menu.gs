@@ -28,14 +28,18 @@ function ouvrirGuide() {
 }
 
 function aPropos() {
-  const config = lireConfig_(classeurCourant_());
-  const liens = [
-    config.trombinoscopeId ? 'Trombinoscope généré.' : 'Trombinoscope pas encore généré.',
-    config.organigrammeId ? 'Organigramme généré.' : 'Organigramme pas encore généré.',
-  ].join(' ');
-  SpreadsheetApp.getUi().alert(
-    `Trombinoscope & organigramme — v${VERSION_}`,
-    `${liens}\n\nLes deux présentations sont accessibles depuis les liens de l’onglet ${NOM_ONGLET_CONFIG_}.`,
-    SpreadsheetApp.getUi().ButtonSet.OK
-  );
+  const classeur = classeurCourant_();
+  const brut = lireConfigBrute_(classeur);
+  const trombinoscopeUrl = brut[CLES_CONFIG_.trombinoscopeUrl];
+  const organigrammeUrl = brut[CLES_CONFIG_.organigrammeUrl];
+  const derniereGeneration = brut[CLES_CONFIG_.derniereGeneration];
+
+  const corps = [
+    derniereGeneration
+      ? `<p class="ligne">${badge_('ok', 'Générées')} Dernière génération : ${echapper_(String(derniereGeneration))}.</p>`
+      : `<p class="ligne">${badge_('attention', 'Pas encore')} Aucune génération pour l’instant — lancez « Régénérer maintenant ».</p>`,
+    `<div class="boutons">${boutonOuvrir_('Ouvrir le trombinoscope', trombinoscopeUrl)}${boutonOuvrir_('Ouvrir l’organigramme', organigrammeUrl)}</div>`,
+  ].join('');
+
+  afficherDialogue_(`Trombinoscope & organigramme — v${VERSION_}`, corps, { hauteur: 200 });
 }

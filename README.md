@@ -21,6 +21,17 @@ Le choix se fait dans `Config > Source de l'effectif`, et se change à tout
 moment sans toucher au code. Les photos suivent le même principe, séparément
 (`Config > Source des photos` : dossier Drive ou photo de profil Workspace).
 
+## Présentation soignée, pas seulement un export brut
+
+Chaque présentation s'ouvre sur une page de titre (nom de l'entreprise si
+renseigné dans `Config`, effectif, date de génération) suivie d'une légende
+des couleurs de service — la même couleur retrouvée sur les bordures de
+l'organigramme et sous les photos du trombinoscope. L'organigramme utilise
+des connecteurs en coude, la convention visuelle habituelle d'un
+organigramme plutôt qu'un rendu utilitaire à base de lignes diagonales.
+Toutes les boîtes de dialogue du menu proposent un lien direct vers chaque
+présentation, sans avoir à aller le chercher dans `Config`.
+
 ## Pourquoi deux présentations, pas une
 
 Un trombinoscope se consulte comme une liste ; un organigramme se lit comme
@@ -33,8 +44,7 @@ déjà accordés) et sa propre logique de pagination.
 
 Ce projet est un script **lié à un classeur Google Sheets** — il ne
 fonctionne pas de façon autonome, et ce n'est pas un oubli : chaque
-régénération s'exécute avec les droits de la personne qui l'a déclenchée
-(voir [CLAUDE.md](CLAUDE.md)).
+régénération s'exécute avec les droits de la personne qui l'a déclenchée.
 
 1. Créez un Google Sheet, puis **Extensions > Apps Script** pour lui
    attacher un projet.
@@ -108,7 +118,7 @@ au dossier de photos.
   reprise de synchronisation.
 - `script.container.ui` — le menu et les boîtes de dialogue.
 
-## Limitations connues (v0.2)
+## Limitations connues (v0.3)
 
 - Les photos non carrées sont insérées à taille carrée forcée, sans
   recadrage intelligent.
@@ -135,9 +145,3 @@ introuvables, cycles), la disposition géométrique, la pagination, la
 synchronisation annuaire (fusion dans RH, reprise après interruption sans
 perte ni doublon) et la non-duplication des déclencheurs. À lancer avant
 chaque `clasp push`.
-
-## Conventions du projet
-
-Voir [CLAUDE.md](CLAUDE.md) : pourquoi le script est lié au classeur, où vit
-la disposition de l'organigramme, et ce que le banc d'essai vérifie
-réellement.

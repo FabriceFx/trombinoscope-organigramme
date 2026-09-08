@@ -14,7 +14,7 @@
  * numéro : un déploiement Apps Script sert une copie figée du code, et ce
  * numéro est le seul moyen de savoir laquelle tourne.
  */
-const VERSION_ = '0.2.1';
+const VERSION_ = '0.3.0';
 
 const NOM_ONGLET_RH_ = 'RH';
 const NOM_ONGLET_CONFIG_ = 'Config';
@@ -22,6 +22,7 @@ const NOM_ONGLET_GUIDE_ = 'Guide';
 
 /** Clés de l'onglet Config — colonne A, recherchées par valeur, jamais par position. */
 const CLES_CONFIG_ = {
+  nomEntreprise: 'Nom de l’entreprise (facultatif, page de titre)',
   sourceEffectif: 'Source de l’effectif (RH manuel / Annuaire Google Workspace)',
   sourcePhotos: 'Source des photos (Dossier Drive / Annuaire Google Workspace)',
   dossierPhotos: 'Dossier des photos (Drive)',
@@ -44,6 +45,14 @@ const VALEURS_CONFIG_PAR_DEFAUT_ = {
 };
 
 const classeurCourant_ = () => SpreadsheetApp.getActive();
+
+/** Échappement HTML pour tout texte inséré dans une boîte de dialogue (Dialogues.gs). */
+const echapper_ = (texte) => String(texte ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
 
 /**
  * Lit l'onglet Config en objet clé → valeur brute (colonnes A/B).
@@ -78,6 +87,7 @@ const lireConfig_ = (classeur) => {
   // égalité stricte sur tout le libellé : une case Config mal recopiée ne
   // doit pas faire basculer silencieusement sur le mode par défaut.
   return {
+    nomEntreprise: String(brut[CLES_CONFIG_.nomEntreprise] || '').trim(),
     sourceEffectif: /annuaire/i.test(String(val(CLES_CONFIG_.sourceEffectif))) ? 'annuaire' : 'rh',
     sourcePhotos: /annuaire/i.test(String(val(CLES_CONFIG_.sourcePhotos))) ? 'annuaire' : 'drive',
     dossierPhotos: String(val(CLES_CONFIG_.dossierPhotos) || '').trim(),

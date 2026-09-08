@@ -59,6 +59,9 @@ const creerRecuperateurPhoto_ = (config) => {
   return (personne) => trouverPhoto_(dossier, personne);
 };
 
+/** Hauteur du liseré de couleur sous la photo, qui relie visuellement chaque carte à la légende de service. */
+const HAUTEUR_ACCENT_CARTE_ = 3;
+
 const dessinerCartePersonne_ = (diapo, x, y, dims, obtenirPhoto, personne) => {
   const decalageX = x + (dims.largeurCarte - dims.taillePhoto) / 2;
   const photo = obtenirPhoto(personne);
@@ -68,9 +71,15 @@ const dessinerCartePersonne_ = (diapo, x, y, dims, obtenirPhoto, personne) => {
     dessinerAvatarInitiales_(diapo, decalageX, y, dims.taillePhoto, personne);
   }
 
+  const accent = diapo.insertShape(
+    SlidesApp.ShapeType.RECTANGLE, decalageX, y + dims.taillePhoto, dims.taillePhoto, HAUTEUR_ACCENT_CARTE_
+  );
+  accent.getFill().setSolidFill(couleurService_(personne.service));
+  accent.getBorder().setTransparent();
+
   const legende = diapo.insertTextBox(
     `${nomComplet_(personne)}\n${personne.poste || ''}`,
-    x, y + dims.taillePhoto + 2, dims.largeurCarte, HAUTEUR_LEGENDE_
+    x, y + dims.taillePhoto + HAUTEUR_ACCENT_CARTE_ + 3, dims.largeurCarte, HAUTEUR_LEGENDE_
   );
   const texte = legende.getText();
   const nom = nomComplet_(personne);
@@ -100,6 +109,7 @@ const regenererTrombinoscope_ = (config, personnes) => {
   let nbPhotosManquantes = 0;
 
   regenererDansPresentation_(presentation, (pres) => {
+    ajouterDiapoCouverture_(pres, 'Trombinoscope', config, tries);
     for (let p = 0; p < nbDiapos; p++) {
       const diapo = ajouterDiapoVierge_(pres);
       ajouterTitreDiapo_(diapo, nbDiapos > 1 ? `Trombinoscope (${p + 1}/${nbDiapos})` : 'Trombinoscope');

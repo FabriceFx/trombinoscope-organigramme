@@ -8,11 +8,17 @@
  */
 
 const ENTETES_RH_ = ['Prénom', 'Nom', 'Email', 'Poste', 'Service', 'Manager', 'Photo', 'Actif'];
+const COULEUR_ONGLET_RH_ = '#1a73e8';
+const COULEUR_ONGLET_CONFIG_ = '#5f6368';
+const COULEUR_ONGLET_GUIDE_ = '#188038';
+const COULEUR_ENTETE_ = '#e8f0fe';
+const COULEUR_LIGNE_GENEREE_ = '#f8f9fa';
 
 const creerOngletRH_ = (classeur) => {
   if (classeur.getSheetByName(NOM_ONGLET_RH_)) return;
   const onglet = classeur.insertSheet(NOM_ONGLET_RH_);
-  onglet.getRange(1, 1, 1, ENTETES_RH_.length).setValues([ENTETES_RH_]).setFontWeight('bold');
+  onglet.getRange(1, 1, 1, ENTETES_RH_.length)
+    .setValues([ENTETES_RH_]).setFontWeight('bold').setBackground(COULEUR_ENTETE_);
   onglet.appendRow([
     'Alex', 'Exemple', 'alex.exemple@exemple.fr', 'Directeur·rice général·e', 'Direction',
     '', '', 'Non',
@@ -23,6 +29,20 @@ const creerOngletRH_ = (classeur) => {
   ]);
   onglet.setFrozenRows(1);
   onglet.autoResizeColumns(1, ENTETES_RH_.length);
+  onglet.setTabColor(COULEUR_ONGLET_RH_);
+
+  // Liste déroulante plutôt que texte libre : « oui »/« Actif » ne sont pas
+  // reconnus par lirePersonnes_, qui ne teste que « non » — une faute de
+  // frappe silencieuse inclurait une personne censée être exclue.
+  const validationOuiNon = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['Oui', 'Non'], true).setAllowInvalid(false).build();
+  onglet.getRange(2, ENTETES_RH_.indexOf('Actif') + 1, 998, 1).setDataValidation(validationOuiNon);
+};
+
+/** Retrouve la ligne d'une clé Config par son contenu, jamais par position — même règle que ecrireConfig_. */
+const ligneDeCleConfig_ = (onglet, cle) => {
+  const cles = onglet.getRange(1, 1, onglet.getLastRow(), 1).getValues().flat();
+  return cles.findIndex((c) => String(c).trim() === cle) + 1;
 };
 
 const creerOngletConfig_ = (classeur) => {
@@ -32,12 +52,14 @@ const creerOngletConfig_ = (classeur) => {
   // sinon la première clé ajoutée atterrit en ligne 1 et lireConfigBrute_,
   // qui saute cette ligne en la prenant pour l'en-tête, ne la voit jamais.
   if (onglet.getLastRow() === 0) {
-    onglet.getRange(1, 1, 1, 2).setValues([['Clé', 'Valeur']]).setFontWeight('bold');
+    onglet.getRange(1, 1, 1, 2).setValues([['Clé', 'Valeur']]).setFontWeight('bold').setBackground(COULEUR_ENTETE_);
     onglet.setFrozenRows(1);
   }
+  onglet.setTabColor(COULEUR_ONGLET_CONFIG_);
+
   const brut = lireConfigBrute_(classeur);
   const clesEditables = [
-    CLES_CONFIG_.sourceEffectif, CLES_CONFIG_.sourcePhotos,
+    CLES_CONFIG_.nomEntreprise, CLES_CONFIG_.sourceEffectif, CLES_CONFIG_.sourcePhotos,
     CLES_CONFIG_.dossierPhotos, CLES_CONFIG_.heureMAJ, CLES_CONFIG_.parLigne,
   ];
   const clesGenerees = [
@@ -49,6 +71,33 @@ const creerOngletConfig_ = (classeur) => {
       onglet.appendRow([cle, VALEURS_CONFIG_PAR_DEFAUT_[cle] || '']);
     }
   });
+
+  // Fond distinct pour les lignes que le code régénère lui-même : pas la
+  // peine d'aller y taper une valeur, ni de s'inquiéter de la voir changer
+  // toute seule après une génération — la couleur le dit avant qu'on lise.
+  const dernieresLignes = onglet.getLastRow();
+  if (dernieresLignes >= 2) {
+    const cles = onglet.getRange(2, 1, dernieresLignes - 1, 1).getValues().flat();
+    cles.forEach((cle, i) => {
+      const generee = clesGenerees.includes(String(cle).trim());
+      onglet.getRange(i + 2, 1, 1, 2).setBackground(generee ? COULEUR_LIGNE_GENEREE_ : '#ffffff');
+    });
+  }
+
+  // Listes déroulantes sur les deux réglages qui pilotent l'aiguillage du
+  // code (lireConfig_) : une valeur mal recopiée à la main y bascule sur le
+  // mode par défaut sans avertir, une liste déroulante l'empêche à la source.
+  const validation = (valeurs) => SpreadsheetApp.newDataValidation()
+    .requireValueInList(valeurs, true).setAllowInvalid(false).build();
+  const ligneEffectif = ligneDeCleConfig_(onglet, CLES_CONFIG_.sourceEffectif);
+  if (ligneEffectif > 0) {
+    onglet.getRange(ligneEffectif, 2).setDataValidation(validation(['RH manuel', 'Annuaire Google Workspace']));
+  }
+  const lignePhotos = ligneDeCleConfig_(onglet, CLES_CONFIG_.sourcePhotos);
+  if (lignePhotos > 0) {
+    onglet.getRange(lignePhotos, 2).setDataValidation(validation(['Dossier Drive', 'Annuaire Google Workspace']));
+  }
+
   onglet.autoResizeColumns(1, 2);
 };
 
@@ -71,6 +120,7 @@ const TEXTE_GUIDE_ = [
   ['  Actif : mettre « Non » pour exclure une ligne sans la supprimer (ex. personne partie).'],
   [''],
   [`Onglet ${NOM_ONGLET_CONFIG_} : réglages, modifiables sans toucher au code.`],
+  ['  Nom de l’entreprise : facultatif, affiché sur la page de titre des deux présentations.'],
   ['  Source de l’effectif : « RH manuel » ou « Annuaire Google Workspace ».'],
   ['  Source des photos : « Dossier Drive » ou « Annuaire Google Workspace » (photo de profil).'],
   ['  Dossier des photos (Drive) : lien ou identifiant du dossier, si la source est Drive.'],
@@ -95,8 +145,9 @@ const creerOngletGuide_ = (classeur) => {
   if (classeur.getSheetByName(NOM_ONGLET_GUIDE_)) return;
   const onglet = classeur.insertSheet(NOM_ONGLET_GUIDE_);
   onglet.getRange(1, 1, TEXTE_GUIDE_.length, 1).setValues(TEXTE_GUIDE_);
-  onglet.getRange(1, 1).setFontWeight('bold').setFontSize(13);
+  onglet.getRange(1, 1).setFontWeight('bold').setFontSize(13).setBackground(COULEUR_ENTETE_);
   onglet.setColumnWidth(1, 620);
+  onglet.setTabColor(COULEUR_ONGLET_GUIDE_);
 };
 
 /**
@@ -128,11 +179,12 @@ function installer() {
   creerOngletConfig_(classeur);
   creerOngletGuide_(classeur);
   nettoyerFeuilleParDefaut_(classeur);
-  SpreadsheetApp.getUi().alert(
+  afficherDialogue_(
     'Installation terminée',
-    `Les onglets ${NOM_ONGLET_RH_}, ${NOM_ONGLET_CONFIG_} et ${NOM_ONGLET_GUIDE_} sont prêts. ` +
-    `Complétez l’onglet ${NOM_ONGLET_RH_} avec votre effectif, réglez l’onglet ${NOM_ONGLET_CONFIG_}, ` +
-    'puis lancez « Régénérer maintenant ».',
-    SpreadsheetApp.getUi().ButtonSet.OK
+    `<p class="ligne">${badge_('ok', 'Prêt')} Les onglets ${NOM_ONGLET_RH_}, ${NOM_ONGLET_CONFIG_} et ` +
+    `${NOM_ONGLET_GUIDE_} sont prêts.</p>` +
+    `<p class="ligne">Complétez l’onglet ${NOM_ONGLET_RH_} avec votre effectif, réglez l’onglet ` +
+    `${NOM_ONGLET_CONFIG_}, puis lancez « Régénérer maintenant ».</p>`,
+    { hauteur: 220 }
   );
 }

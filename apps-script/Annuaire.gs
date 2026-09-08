@@ -218,23 +218,28 @@ function reprendreSynchronisationAnnuaire() {
 
 /** Point d'entrée menu : synchronise RH depuis l'annuaire, sans régénérer les présentations. */
 function synchroniserEffectifMaintenant() {
-  const ui = SpreadsheetApp.getUi();
   try {
     const resultat = synchroniserAnnuaire_(classeurCourant_());
     if (!resultat.termine) {
-      ui.alert(
+      afficherDialogue_(
         'Synchronisation en cours',
-        'L’effectif est nombreux : la synchronisation reprendra automatiquement dans une minute.',
-        ui.ButtonSet.OK
+        `<p class="ligne">${badge_('attention', 'En attente')} L’effectif est nombreux : la synchronisation ` +
+        'reprendra automatiquement dans une minute.</p>',
+        { hauteur: 170 }
       );
       return;
     }
-    ui.alert(
+    afficherDialogue_(
       'Synchronisation terminée',
-      `${resultat.ajoutes} personne(s) ajoutée(s), ${resultat.misAJour} mise(s) à jour dans l’onglet ${NOM_ONGLET_RH_}.`,
-      ui.ButtonSet.OK
+      `<p class="ligne">${badge_('ok', 'OK')} ${resultat.ajoutes} personne(s) ajoutée(s), ${resultat.misAJour} ` +
+      `mise(s) à jour dans l’onglet ${NOM_ONGLET_RH_}.</p>`,
+      { hauteur: 180 }
     );
   } catch (e) {
-    ui.alert('La synchronisation a échoué', e.message, ui.ButtonSet.OK);
+    afficherDialogue_(
+      'La synchronisation a échoué',
+      `<p class="ligne">${badge_('erreur', 'Échec')} ${echapper_(e.message)}</p>`,
+      { hauteur: 190 }
+    );
   }
 }

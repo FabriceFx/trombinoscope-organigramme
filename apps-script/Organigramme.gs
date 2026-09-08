@@ -14,7 +14,6 @@ const BOITE_LARGEUR_ = 140;
 const BOITE_HAUTEUR_ = 46;
 const ESPACE_H_ = 16;
 const ESPACE_V_ = 40;
-const MARGE_DIAPO_ = 30;
 
 /**
  * En dessous de cette échelle, le texte des boîtes devient illisible : on
@@ -76,6 +75,7 @@ const dessinerNoeud_ = (diapo, noeud, origineX, origineY, echelle) => {
     );
     rect.getFill().setSolidFill('#f1f3f4');
     rect.getBorder().getLineFill().setSolidFill(couleurService_(noeud.personne.service));
+    rect.getBorder().setWeight(2.25);
     const nom = nomComplet_(noeud.personne);
     const texte = rect.getText();
     texte.setText(`${nom}\n${noeud.personne.poste || ''}`);
@@ -93,51 +93,20 @@ const dessinerNoeud_ = (diapo, noeud, origineX, origineY, echelle) => {
     const xCentreEnfant = origineXEnfant + enfant._x * echelle;
 
     if (noeud.personne) {
+      // BENT plutôt que STRAIGHT : un connecteur en coude (vertical puis
+      // horizontal) est la convention visuelle d'un organigramme, une
+      // ligne diagonale se lit comme une erreur de mise en page.
       const ligne = diapo.insertLine(
-        SlidesApp.LineCategory.STRAIGHT, xCentre, yBas, xCentreEnfant, yEnfants
+        SlidesApp.LineCategory.BENT, xCentre, yBas, xCentreEnfant, yEnfants
       );
       ligne.getLineFill().setSolidFill('#9aa0a6');
-      ligne.setWeight(1);
+      ligne.setWeight(1.5);
     }
 
     dessinerNoeud_(diapo, enfant, origineXEnfant, yEnfants, echelle);
   });
 
   return { x: xCentre, yBas };
-};
-
-const ouvrirOuCreerPresentation_ = (id, titre) => {
-  if (id) {
-    try {
-      return SlidesApp.openById(id);
-    } catch (e) {
-      // L'identifiant enregistré ne pointe plus vers rien d'accessible
-      // (fichier supprimé, déplacé hors de portée) : on en recrée un
-      // plutôt que d'échouer, et Config sera mis à jour avec le nouveau.
-    }
-  }
-  return SlidesApp.create(titre);
-};
-
-const ajouterDiapoVierge_ = (presentation) =>
-  presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
-
-const ajouterTitreDiapo_ = (diapo, texte) => {
-  const boite = diapo.insertTextBox(texte, MARGE_DIAPO_, 6, 400, 24);
-  boite.getText().getTextStyle().setFontSize(14).setBold(true).setForegroundColor('#202124');
-};
-
-/**
- * Vide une présentation de ses diapositives existantes en préservant
- * l'identifiant du fichier (donc son URL et ses droits de partage) : les
- * anciennes diapositives sont supprimées après coup, jamais avant, pour
- * qu'une présentation ne se retrouve jamais à zéro diapositive au milieu
- * du traitement.
- */
-const regenererDansPresentation_ = (presentation, construire) => {
-  const anciennes = presentation.getSlides();
-  construire(presentation);
-  anciennes.forEach((diapo) => diapo.remove());
 };
 
 const brancherRacines_ = (racines) =>
@@ -160,6 +129,7 @@ const regenererOrganigramme_ = (config, personnes) => {
   const echelleGlobale = Math.min(1, largeurDisponible / superRacine._largeur);
 
   regenererDansPresentation_(presentation, (pres) => {
+    ajouterDiapoCouverture_(pres, 'Organigramme', config, personnes);
     if (echelleGlobale >= ECHELLE_MIN_ORGANIGRAMME_) {
       const diapo = ajouterDiapoVierge_(pres);
       ajouterTitreDiapo_(diapo, 'Organigramme général');

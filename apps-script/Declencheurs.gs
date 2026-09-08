@@ -39,10 +39,11 @@ function activerMiseAJourQuotidienne() {
     .everyDays(1)
     .create();
   ecrireConfig_(classeur, CLES_CONFIG_.statutMAJ, `Activée (vers ${config.heureMAJ}h)`);
-  SpreadsheetApp.getUi().alert(
+  afficherDialogue_(
     'Mise à jour quotidienne activée',
-    `Le trombinoscope et l'organigramme seront régénérés chaque jour vers ${config.heureMAJ}h.`,
-    SpreadsheetApp.getUi().ButtonSet.OK
+    `<p class="ligne">${badge_('ok', 'Activée')} Le trombinoscope et l’organigramme seront régénérés ` +
+    `chaque jour vers ${config.heureMAJ}h.</p>`,
+    { hauteur: 180 }
   );
 }
 
@@ -51,5 +52,10 @@ function desactiverMiseAJourQuotidienne() {
   const classeur = classeurCourant_();
   supprimerDeclencheurs_('misAJourQuotidienne');
   ecrireConfig_(classeur, CLES_CONFIG_.statutMAJ, 'Désactivée');
-  SpreadsheetApp.getUi().alert('Mise à jour quotidienne désactivée.');
+  afficherDialogue_(
+    'Mise à jour quotidienne désactivée',
+    `<p class="ligne">${badge_('attention', 'Désactivée')} La régénération automatique n’aura plus lieu ` +
+    'tant qu’elle n’est pas réactivée.</p>',
+    { hauteur: 170 }
+  );
 }
