@@ -29,29 +29,36 @@ const regenererTout_ = () => {
   const trombinoscope = regenererTrombinoscope_(config, personnes);
   const organigramme = regenererOrganigramme_(config, personnes);
 
-  ecrireConfig_(classeur, CLES_CONFIG_.derniereGeneration, formaterHorodatage_(new Date()));
+  ecrireConfig_(classeur, CLES_CONFIG_.derniereGeneration, formaterHorodatage_(new Date(), config.langue));
 
   return { trombinoscope, organigramme, nbPersonnes: personnes.length };
 };
 
-const corpsRapportRegeneration_ = (rapport) => {
+const corpsRapportRegeneration_ = (rapport, langue) => {
   const lignes = [
-    `<p class="ligne">${badge_('ok', 'OK')} ${rapport.nbPersonnes} personne(s) active(s) dans l'onglet ${NOM_ONGLET_RH_}.</p>`,
+    `<p class="ligne">${badge_('ok', t_(langue, 'badgeOk'))} ` +
+    `${t_(langue, 'personnesActives', { n: rapport.nbPersonnes, onglet: NOM_ONGLET_RH_ })}</p>`,
   ];
   if (rapport.trombinoscope.nbPhotosManquantes > 0) {
     lignes.push(
-      `<p class="ligne">${badge_('attention', 'Photos')} ${rapport.trombinoscope.nbPhotosManquantes} ` +
-      'photo(s) manquante(s), remplacée(s) par des initiales.</p>'
+      `<p class="ligne">${badge_('attention', t_(langue, 'badgePhotos'))} ` +
+      `${t_(langue, 'photosManquantes', { n: rapport.trombinoscope.nbPhotosManquantes })}</p>`
+    );
+  }
+  if (rapport.trombinoscope.parLigneAjustee) {
+    lignes.push(
+      `<p class="ligne">${badge_('attention', t_(langue, 'badgeMiseEnPage'))} ` +
+      `${t_(langue, 'parLigneAjustee', { n: rapport.trombinoscope.parLigneAjustee })}</p>`
     );
   }
   if (rapport.organigramme.alertes && rapport.organigramme.alertes.length > 0) {
-    lignes.push(`<p class="ligne">${badge_('attention', 'Organigramme')} points à vérifier :</p>`);
+    lignes.push(`<p class="ligne">${badge_('attention', t_(langue, 'badgeOrganigramme'))} ${t_(langue, 'pointsAVerifier')}</p>`);
     lignes.push(`<ul class="points">${rapport.organigramme.alertes.map((a) => `<li>${echapper_(a)}</li>`).join('')}</ul>`);
   }
   lignes.push(
     '<div class="boutons">' +
-    boutonOuvrir_('Ouvrir le trombinoscope', rapport.trombinoscope.url) +
-    boutonOuvrir_('Ouvrir l’organigramme', rapport.organigramme.url) +
+    boutonOuvrir_(t_(langue, 'boutonOuvrirTrombi'), rapport.trombinoscope.url) +
+    boutonOuvrir_(t_(langue, 'boutonOuvrirOrganigramme'), rapport.organigramme.url) +
     '</div>'
   );
   return lignes.join('');
@@ -59,24 +66,24 @@ const corpsRapportRegeneration_ = (rapport) => {
 
 /** Point d'entrée menu : régénère et affiche un compte rendu à l'écran. */
 function regenererMaintenant() {
+  const langue = langueInterface_(classeurCourant_());
   try {
     const rapport = regenererTout_();
     if (rapport.enAttente) {
       afficherDialogue_(
-        'Synchronisation en cours',
-        `<p class="ligne">${badge_('attention', 'En attente')} L’effectif est nombreux : la synchronisation de ` +
-        'l’annuaire reprendra automatiquement dans une minute, puis la régénération s’enchaînera d’elle-même.</p>',
-        { hauteur: 190 }
+        t_(langue, 'titreSyncEnCours'),
+        `<p class="ligne">${badge_('attention', t_(langue, 'badgeEnAttente'))} ${t_(langue, 'texteSyncEnCoursRegen')}</p>`,
+        { hauteur: 190, langue }
       );
       return;
     }
-    afficherDialogue_('Régénération terminée', corpsRapportRegeneration_(rapport));
+    afficherDialogue_(t_(langue, 'titreRegenTerminee'), corpsRapportRegeneration_(rapport, langue), { langue });
   } catch (e) {
     afficherDialogue_(
-      'La régénération a échoué',
-      `<p class="ligne">${badge_('erreur', 'Échec')} ${echapper_(e.message)}</p>` +
-      '<p class="ligne">Corrigez le point signalé puis relancez « Régénérer maintenant ».</p>',
-      { hauteur: 220 }
+      t_(langue, 'titreRegenEchec'),
+      `<p class="ligne">${badge_('erreur', t_(langue, 'badgeEchec'))} ${echapper_(e.message)}</p>` +
+      `<p class="ligne">${t_(langue, 'texteCorrigerPuisRelancer')}</p>`,
+      { hauteur: 220, langue }
     );
   }
 }

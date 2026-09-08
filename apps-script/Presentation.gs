@@ -35,9 +35,9 @@ const ajouterTitreDiapo_ = (diapo, texte) => {
  * ailleurs — sans elle, un code couleur par service ne s'explique nulle
  * part dans le document lui-même.
  */
-const ajouterLegendeServices_ = (diapo, largeurDiapo, y, personnes) => {
+const ajouterLegendeServices_ = (diapo, largeurDiapo, y, personnes, langue) => {
   const services = [...new Set(personnes.map((p) => p.service).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, 'fr'));
+    .sort((a, b) => a.localeCompare(b, langue));
   if (services.length === 0) return;
 
   const largeurPuce = 10;
@@ -69,6 +69,7 @@ const ajouterLegendeServices_ = (diapo, largeurDiapo, y, personnes) => {
  * ni ce qu'elle est, ni de quand elle date, n'est pas un document fini.
  */
 const ajouterDiapoCouverture_ = (presentation, titre, config, personnes) => {
+  const langue = config.langue || LANGUE_DEFAUT_;
   const diapo = ajouterDiapoVierge_(presentation);
   const largeur = presentation.getPageWidth();
   const hauteur = presentation.getPageHeight();
@@ -92,13 +93,13 @@ const ajouterDiapoCouverture_ = (presentation, titre, config, personnes) => {
   y += 54;
 
   const sousTitre = diapo.insertTextBox(
-    `${personnes.length} personne(s) — généré le ${formaterHorodatage_(new Date())}`,
+    t_(langue, 'coverSousTitre', { n: personnes.length, date: formaterHorodatage_(new Date(), langue) }),
     0, y, largeur, 22
   );
   sousTitre.getText().getTextStyle().setFontSize(12).setForegroundColor('#5f6368');
   sousTitre.getText().getParagraphStyle().setParagraphAlignment(SlidesApp.ParagraphAlignment.CENTER);
 
-  ajouterLegendeServices_(diapo, largeur, hauteur - 40, personnes);
+  ajouterLegendeServices_(diapo, largeur, hauteur - 40, personnes, langue);
 
   return diapo;
 };

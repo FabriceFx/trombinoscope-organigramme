@@ -31,10 +31,11 @@ const CSS_DIALOGUE_ = `
   button.fermer:hover { background: #e8eaed; }
 `;
 
-const afficherDialogue_ = (titre, corpsHtml, { largeur = 440, hauteur = 300 } = {}) => {
+const afficherDialogue_ = (titre, corpsHtml, { largeur = 440, hauteur = 300, langue = LANGUE_DEFAUT_ } = {}) => {
   const html = `<style>${CSS_DIALOGUE_}</style>` +
     `<h2>${echapper_(titre)}</h2>${corpsHtml}` +
-    '<div class="pied"><button class="fermer" onclick="google.script.host.close()">Fermer</button></div>';
+    `<div class="pied"><button class="fermer" onclick="google.script.host.close()">` +
+    `${echapper_(t_(langue, 'boutonFermer'))}</button></div>`;
   const sortie = HtmlService.createHtmlOutput(html).setWidth(largeur).setHeight(hauteur);
   SpreadsheetApp.getUi().showModalDialog(sortie, titre);
 };

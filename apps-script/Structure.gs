@@ -21,7 +21,7 @@
  * détecté et rompu en traitant le premier nœud du cycle comme racine, et
  * signalé — jamais silencieux.
  */
-const construireArbre_ = (personnes) => {
+const construireArbre_ = (personnes, langue = LANGUE_DEFAUT_) => {
   const alertes = [];
   const parEmail = new Map(personnes.map((p) => [p.email, { personne: p, enfants: [] }]));
 
@@ -29,11 +29,11 @@ const construireArbre_ = (personnes) => {
     if (!p.manager) return;
     const manager = parEmail.get(p.manager);
     if (!manager) {
-      alertes.push(`${nomComplet_(p)} : manager « ${p.manager} » introuvable dans l'effectif, traité·e comme sommet de hiérarchie.`);
+      alertes.push(t_(langue, 'alerteManagerIntrouvable', { nom: nomComplet_(p), manager: p.manager }));
       return;
     }
     if (manager === parEmail.get(p.email)) {
-      alertes.push(`${nomComplet_(p)} est indiqué·e comme son propre manager : lien ignoré.`);
+      alertes.push(t_(langue, 'alertePropreManager', { nom: nomComplet_(p) }));
       return;
     }
     manager.enfants.push(parEmail.get(p.email));
@@ -56,7 +56,7 @@ const construireArbre_ = (personnes) => {
     }
     const manager = parEmail.get(p.manager);
     if (estAncetre_(noeud, manager)) {
-      alertes.push(`Cycle hiérarchique détecté impliquant ${nomComplet_(p)} : traité·e comme sommet de hiérarchie pour rompre le cycle.`);
+      alertes.push(t_(langue, 'alerteCycle', { nom: nomComplet_(p) }));
       manager.enfants = manager.enfants.filter((e) => e !== noeud);
       racines.push(noeud);
     }

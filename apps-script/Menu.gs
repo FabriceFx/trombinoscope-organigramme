@@ -7,18 +7,20 @@
  * ce soit à l'avance.
  */
 function onOpen() {
+  const langue = langueInterface_(classeurCourant_());
+  const tr = (cle) => t_(langue, cle);
   SpreadsheetApp.getUi()
-    .createMenu('RH')
-    .addItem('Installer les onglets', 'installer')
+    .createMenu(tr('menuRH'))
+    .addItem(tr('menuInstaller'), 'installer')
     .addSeparator()
-    .addItem('Synchroniser l’effectif depuis l’annuaire', 'synchroniserEffectifMaintenant')
-    .addItem('Régénérer maintenant', 'regenererMaintenant')
+    .addItem(tr('menuSynchroniser'), 'synchroniserEffectifMaintenant')
+    .addItem(tr('menuRegenerer'), 'regenererMaintenant')
     .addSeparator()
-    .addItem('Activer la mise à jour quotidienne', 'activerMiseAJourQuotidienne')
-    .addItem('Désactiver la mise à jour quotidienne', 'desactiverMiseAJourQuotidienne')
+    .addItem(tr('menuActiver'), 'activerMiseAJourQuotidienne')
+    .addItem(tr('menuDesactiver'), 'desactiverMiseAJourQuotidienne')
     .addSeparator()
-    .addItem('Ouvrir le guide', 'ouvrirGuide')
-    .addItem('À propos', 'aPropos')
+    .addItem(tr('menuGuide'), 'ouvrirGuide')
+    .addItem(tr('menuAPropos'), 'aPropos')
     .addToUi();
 }
 
@@ -29,6 +31,7 @@ function ouvrirGuide() {
 
 function aPropos() {
   const classeur = classeurCourant_();
+  const langue = langueInterface_(classeur);
   const brut = lireConfigBrute_(classeur);
   const trombinoscopeUrl = brut[CLES_CONFIG_.trombinoscopeUrl];
   const organigrammeUrl = brut[CLES_CONFIG_.organigrammeUrl];
@@ -36,10 +39,10 @@ function aPropos() {
 
   const corps = [
     derniereGeneration
-      ? `<p class="ligne">${badge_('ok', 'Générées')} Dernière génération : ${echapper_(String(derniereGeneration))}.</p>`
-      : `<p class="ligne">${badge_('attention', 'Pas encore')} Aucune génération pour l’instant — lancez « Régénérer maintenant ».</p>`,
-    `<div class="boutons">${boutonOuvrir_('Ouvrir le trombinoscope', trombinoscopeUrl)}${boutonOuvrir_('Ouvrir l’organigramme', organigrammeUrl)}</div>`,
+      ? `<p class="ligne">${badge_('ok', t_(langue, 'badgeGenerees'))} ${echapper_(t_(langue, 'aProposGenere', { date: String(derniereGeneration) }))}</p>`
+      : `<p class="ligne">${badge_('attention', t_(langue, 'badgePasEncore'))} ${t_(langue, 'aProposPasEncore')}</p>`,
+    `<div class="boutons">${boutonOuvrir_(t_(langue, 'boutonOuvrirTrombi'), trombinoscopeUrl)}${boutonOuvrir_(t_(langue, 'boutonOuvrirOrganigramme'), organigrammeUrl)}</div>`,
   ].join('');
 
-  afficherDialogue_(`Trombinoscope & organigramme — v${VERSION_}`, corps, { hauteur: 200 });
+  afficherDialogue_(t_(langue, 'titreAPropos', { version: VERSION_ }), corps, { hauteur: 200, langue });
 }

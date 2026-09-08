@@ -18,13 +18,28 @@ const ESPACE_CARTE_ = 14;
 const HAUTEUR_LEGENDE_ = 34;
 const MARGE_HAUT_TROMBI_ = 46;
 
-const disposerGrille_ = (presentation, parLigne) => {
+/**
+ * En dessous de cette largeur, une carte n'est plus lisible — et surtout,
+ * rien ne garantit qu'elle reste positive : `Config.parLigne` est un
+ * nombre libre, saisi à la main, et un « Personnes par ligne » trop grand
+ * pour la largeur de la diapositive rendait `largeurCarte` négative, que
+ * Slides refuse (« The width should not be zero »). `disposerGrille_`
+ * réduit donc `parLigne` autant qu'il faut pour rester au-dessus de ce
+ * plancher, plutôt que de transmettre à l'API une largeur qu'elle
+ * rejettera — et le dit dans le rapport (`parLigneAjustee`), jamais en
+ * silence.
+ */
+const LARGEUR_MIN_CARTE_ = 60;
+
+const disposerGrille_ = (presentation, parLigneDemande) => {
   const largeurDisponible = presentation.getPageWidth() - 2 * MARGE_DIAPO_;
   const hauteurDisponible = presentation.getPageHeight() - MARGE_HAUT_TROMBI_ - MARGE_DIAPO_;
+  const parLigneMax = Math.max(1, Math.floor((largeurDisponible + ESPACE_CARTE_) / (LARGEUR_MIN_CARTE_ + ESPACE_CARTE_)));
+  const parLigne = Math.min(Math.max(1, Math.round(parLigneDemande) || 1), parLigneMax);
   const largeurCarte = (largeurDisponible - (parLigne - 1) * ESPACE_CARTE_) / parLigne;
   const hauteurCarte = (hauteurDisponible - (RANGEES_PAR_DIAPO_TROMBI_ - 1) * ESPACE_CARTE_) / RANGEES_PAR_DIAPO_TROMBI_;
   const taillePhoto = Math.max(30, Math.min(largeurCarte, hauteurCarte - HAUTEUR_LEGENDE_));
-  return { largeurCarte, hauteurCarte, taillePhoto };
+  return { largeurCarte, hauteurCarte, taillePhoto, parLigne, parLigneAjustee: parLigne !== parLigneDemande };
 };
 
 const dessinerAvatarInitiales_ = (diapo, x, y, taille, personne) => {
@@ -96,27 +111,30 @@ const regenererTrombinoscope_ = (config, personnes) => {
     return { url: '', id: '', nbPersonnes: 0, nbPhotosManquantes: 0 };
   }
 
+  const langue = config.langue || LANGUE_DEFAUT_;
   const obtenirPhoto = creerRecuperateurPhoto_(config);
 
   const tries = [...personnes].sort((a, b) =>
-    a.service.localeCompare(b.service, 'fr') || nomComplet_(a).localeCompare(nomComplet_(b), 'fr')
+    a.service.localeCompare(b.service, langue) || nomComplet_(a).localeCompare(nomComplet_(b), langue)
   );
 
-  const presentation = ouvrirOuCreerPresentation_(config.trombinoscopeId, 'Trombinoscope');
+  const presentation = ouvrirOuCreerPresentation_(config.trombinoscopeId, t_(langue, 'titreDocTrombinoscope'));
   const dims = disposerGrille_(presentation, config.parLigne);
-  const parDiapo = config.parLigne * RANGEES_PAR_DIAPO_TROMBI_;
+  const parDiapo = dims.parLigne * RANGEES_PAR_DIAPO_TROMBI_;
   const nbDiapos = Math.ceil(tries.length / parDiapo);
   let nbPhotosManquantes = 0;
 
   regenererDansPresentation_(presentation, (pres) => {
-    ajouterDiapoCouverture_(pres, 'Trombinoscope', config, tries);
+    ajouterDiapoCouverture_(pres, t_(langue, 'titreDocTrombinoscope'), config, tries);
     for (let p = 0; p < nbDiapos; p++) {
       const diapo = ajouterDiapoVierge_(pres);
-      ajouterTitreDiapo_(diapo, nbDiapos > 1 ? `Trombinoscope (${p + 1}/${nbDiapos})` : 'Trombinoscope');
+      ajouterTitreDiapo_(diapo, nbDiapos > 1
+        ? t_(langue, 'titreTrombiPage', { n: p + 1, total: nbDiapos })
+        : t_(langue, 'titreDocTrombinoscope'));
       const page = tries.slice(p * parDiapo, (p + 1) * parDiapo);
       page.forEach((personne, i) => {
-        const colonne = i % config.parLigne;
-        const rangee = Math.floor(i / config.parLigne);
+        const colonne = i % dims.parLigne;
+        const rangee = Math.floor(i / dims.parLigne);
         const x = MARGE_DIAPO_ + colonne * (dims.largeurCarte + ESPACE_CARTE_);
         const y = MARGE_HAUT_TROMBI_ + rangee * (dims.hauteurCarte + ESPACE_CARTE_);
         const sansPhoto = dessinerCartePersonne_(diapo, x, y, dims, obtenirPhoto, personne);
@@ -131,5 +149,6 @@ const regenererTrombinoscope_ = (config, personnes) => {
   return {
     url: presentation.getUrl(), id: presentation.getId(),
     nbPersonnes: tries.length, nbPhotosManquantes,
+    parLigneAjustee: dims.parLigneAjustee ? dims.parLigne : null,
   };
 };

@@ -59,7 +59,7 @@ const creerOngletConfig_ = (classeur) => {
 
   const brut = lireConfigBrute_(classeur);
   const clesEditables = [
-    CLES_CONFIG_.nomEntreprise, CLES_CONFIG_.sourceEffectif, CLES_CONFIG_.sourcePhotos,
+    CLES_CONFIG_.langue, CLES_CONFIG_.nomEntreprise, CLES_CONFIG_.sourceEffectif, CLES_CONFIG_.sourcePhotos,
     CLES_CONFIG_.dossierPhotos, CLES_CONFIG_.heureMAJ, CLES_CONFIG_.parLigne,
   ];
   const clesGenerees = [
@@ -97,54 +97,26 @@ const creerOngletConfig_ = (classeur) => {
   if (lignePhotos > 0) {
     onglet.getRange(lignePhotos, 2).setDataValidation(validation(['Dossier Drive', 'Annuaire Google Workspace']));
   }
+  const ligneLangue = ligneDeCleConfig_(onglet, CLES_CONFIG_.langue);
+  if (ligneLangue > 0) {
+    onglet.getRange(ligneLangue, 2).setDataValidation(validation(['Français', 'English']));
+  }
 
   onglet.autoResizeColumns(1, 2);
 };
 
-const TEXTE_GUIDE_ = [
-  ['Guide — Trombinoscope & organigramme'],
-  [''],
-  [`Onglet ${NOM_ONGLET_RH_} : une ligne par personne. Deux façons de le remplir,`],
-  ['réglées dans Config (« Source de l’effectif ») :'],
-  ['  • RH manuel (par défaut) : vous complétez et corrigez l’onglet vous-même.'],
-  ['  • Annuaire Google Workspace : RH devient un miroir de l’annuaire, resynchronisé'],
-  ['    à chaque régénération. Une correction manuelle de Prénom, Nom, Poste, Service,'],
-  ['    Manager ou Actif ne survit pas à la synchronisation suivante — corrigez la donnée'],
-  ['    dans l’annuaire, pas dans l’onglet. Colonne Photo exceptée : jamais synchronisée,'],
-  ['    toujours modifiable à la main. Nécessite un compte administrateur Workspace (ou'],
-  ['    délégué) pour la synchronisation ; « RH manuel » n’a besoin d’aucun droit particulier.'],
-  ['  Prénom, Nom, Email, Poste, Service : texte libre.'],
-  ['  Manager : l’email de la personne dont elle dépend. Vide = sommet de la hiérarchie.'],
-  ['  Photo : nom de fichier dans le dossier de photos (facultatif).'],
-  ['    Si vide, le fichier est retrouvé automatiquement par email, puis par « Prénom Nom ».'],
-  ['  Actif : mettre « Non » pour exclure une ligne sans la supprimer (ex. personne partie).'],
-  [''],
-  [`Onglet ${NOM_ONGLET_CONFIG_} : réglages, modifiables sans toucher au code.`],
-  ['  Nom de l’entreprise : facultatif, affiché sur la page de titre des deux présentations.'],
-  ['  Source de l’effectif : « RH manuel » ou « Annuaire Google Workspace ».'],
-  ['  Source des photos : « Dossier Drive » ou « Annuaire Google Workspace » (photo de profil).'],
-  ['  Dossier des photos (Drive) : lien ou identifiant du dossier, si la source est Drive.'],
-  ['  Heure de mise à jour quotidienne : heure (0-23) à laquelle la régénération automatique se lance.'],
-  ['  Personnes par ligne : nombre de cartes par rangée dans le trombinoscope.'],
-  ['  Les autres lignes (liens, dernière génération, statut) sont remplies automatiquement.'],
-  [''],
-  ['Menu RH :'],
-  ['  Synchroniser l’effectif depuis l’annuaire : met à jour RH sans toucher aux présentations.'],
-  ['  Régénérer maintenant : synchronise si nécessaire, puis reconstruit les deux présentations.'],
-  ['  Activer / désactiver la mise à jour quotidienne : pose ou retire le déclencheur automatique.'],
-  [''],
-  ['Limitations connues de cette version :'],
-  ['  Les photos non carrées sont recadrées en carré sans ajustement fin.'],
-  ['  Un organigramme très large est scindé en une vue d’ensemble + un slide par service ;'],
-  ['  à l’intérieur d’un même service, l’équipe peut rester dense si elle est très nombreuse.'],
-  ['  Un effectif très nombreux peut faire reprendre la synchronisation annuaire sur plusieurs'],
-  ['  minutes (automatiquement, sans action à refaire) avant que la régénération ne parte.'],
-];
-
-const creerOngletGuide_ = (classeur) => {
-  if (classeur.getSheetByName(NOM_ONGLET_GUIDE_)) return;
-  const onglet = classeur.insertSheet(NOM_ONGLET_GUIDE_);
-  onglet.getRange(1, 1, TEXTE_GUIDE_.length, 1).setValues(TEXTE_GUIDE_);
+/**
+ * Le Guide est de la documentation, jamais une donnée saisie à la main —
+ * personne n'y écrit ses propres notes dans cet onglet. Il est donc
+ * réécrit à chaque installation, contrairement à RH et Config : c'est ce
+ * qui permet à un changement de langue de s'y répercuter sans étape
+ * supplémentaire.
+ */
+const creerOngletGuide_ = (classeur, langue) => {
+  const onglet = classeur.getSheetByName(NOM_ONGLET_GUIDE_) || classeur.insertSheet(NOM_ONGLET_GUIDE_);
+  const texte = texteGuide_(langue);
+  onglet.clearContents();
+  onglet.getRange(1, 1, texte.length, 1).setValues(texte);
   onglet.getRange(1, 1).setFontWeight('bold').setFontSize(13).setBackground(COULEUR_ENTETE_);
   onglet.setColumnWidth(1, 620);
   onglet.setTabColor(COULEUR_ONGLET_GUIDE_);
@@ -152,7 +124,9 @@ const creerOngletGuide_ = (classeur) => {
 
 /**
  * Noms par défaut de l'onglet unique qu'attribue Google à un classeur tout
- * neuf, selon la langue de l'interface au moment de la création.
+ * neuf, selon la langue du **compte Google** au moment de la création — un
+ * réglage propre à Google Sheets, sans rapport avec `Config.langue`
+ * (Langues.gs), qui ne pilote que ce que cet outil affiche lui-même.
  */
 const NOMS_FEUILLE_DEFAUT_ = ['Feuille 1', 'Sheet1'];
 
@@ -177,14 +151,14 @@ function installer() {
   const classeur = classeurCourant_();
   creerOngletRH_(classeur);
   creerOngletConfig_(classeur);
-  creerOngletGuide_(classeur);
+  const langue = langueInterface_(classeur);
+  creerOngletGuide_(classeur, langue);
   nettoyerFeuilleParDefaut_(classeur);
   afficherDialogue_(
-    'Installation terminée',
-    `<p class="ligne">${badge_('ok', 'Prêt')} Les onglets ${NOM_ONGLET_RH_}, ${NOM_ONGLET_CONFIG_} et ` +
-    `${NOM_ONGLET_GUIDE_} sont prêts.</p>` +
-    `<p class="ligne">Complétez l’onglet ${NOM_ONGLET_RH_} avec votre effectif, réglez l’onglet ` +
-    `${NOM_ONGLET_CONFIG_}, puis lancez « Régénérer maintenant ».</p>`,
-    { hauteur: 220 }
+    t_(langue, 'titreInstallTerminee'),
+    `<p class="ligne">${badge_('ok', t_(langue, 'badgePret'))} ` +
+    `${t_(langue, 'texteInstallOnglets', { rh: NOM_ONGLET_RH_, config: NOM_ONGLET_CONFIG_, guide: NOM_ONGLET_GUIDE_ })}</p>` +
+    `<p class="ligne">${t_(langue, 'texteInstallSuite', { rh: NOM_ONGLET_RH_, config: NOM_ONGLET_CONFIG_ })}</p>`,
+    { hauteur: 220, langue }
   );
 }

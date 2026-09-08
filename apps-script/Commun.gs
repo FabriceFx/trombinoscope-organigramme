@@ -14,7 +14,7 @@
  * numéro : un déploiement Apps Script sert une copie figée du code, et ce
  * numéro est le seul moyen de savoir laquelle tourne.
  */
-const VERSION_ = '0.3.0';
+const VERSION_ = '0.4.1';
 
 const NOM_ONGLET_RH_ = 'RH';
 const NOM_ONGLET_CONFIG_ = 'Config';
@@ -22,6 +22,7 @@ const NOM_ONGLET_GUIDE_ = 'Guide';
 
 /** Clés de l'onglet Config — colonne A, recherchées par valeur, jamais par position. */
 const CLES_CONFIG_ = {
+  langue: 'Langue de l’interface (Français / English)',
   nomEntreprise: 'Nom de l’entreprise (facultatif, page de titre)',
   sourceEffectif: 'Source de l’effectif (RH manuel / Annuaire Google Workspace)',
   sourcePhotos: 'Source des photos (Dossier Drive / Annuaire Google Workspace)',
@@ -37,6 +38,7 @@ const CLES_CONFIG_ = {
 };
 
 const VALEURS_CONFIG_PAR_DEFAUT_ = {
+  [CLES_CONFIG_.langue]: 'Français',
   [CLES_CONFIG_.sourceEffectif]: 'RH manuel',
   [CLES_CONFIG_.sourcePhotos]: 'Dossier Drive',
   [CLES_CONFIG_.heureMAJ]: '6',
@@ -87,6 +89,7 @@ const lireConfig_ = (classeur) => {
   // égalité stricte sur tout le libellé : une case Config mal recopiée ne
   // doit pas faire basculer silencieusement sur le mode par défaut.
   return {
+    langue: /^english/i.test(String(val(CLES_CONFIG_.langue)).trim()) ? 'en' : 'fr',
     nomEntreprise: String(brut[CLES_CONFIG_.nomEntreprise] || '').trim(),
     sourceEffectif: /annuaire/i.test(String(val(CLES_CONFIG_.sourceEffectif))) ? 'annuaire' : 'rh',
     sourcePhotos: /annuaire/i.test(String(val(CLES_CONFIG_.sourcePhotos))) ? 'annuaire' : 'drive',
@@ -234,4 +237,12 @@ const lirePersonnes_ = (classeur) => {
     }));
 };
 
-const formaterHorodatage_ = (date) => Utilities.formatDate(date, 'Europe/Paris', 'dd/MM/yyyy HH:mm');
+/**
+ * Pas de nom de mois (« MMM ») : Utilities.formatDate suit la locale du
+ * compte Google exécutant le script, pas notre réglage `Config.langue` —
+ * un motif anglais combiné à un mois rendu en français serait pire que pas
+ * de traduction du tout. L'ordre des champs numériques, lui, dépend
+ * uniquement du motif qu'on choisit ici.
+ */
+const formaterHorodatage_ = (date, langue = LANGUE_DEFAUT_) =>
+  Utilities.formatDate(date, 'Europe/Paris', langue === 'en' ? 'MM/dd/yyyy HH:mm' : 'dd/MM/yyyy HH:mm');

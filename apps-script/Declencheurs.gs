@@ -24,7 +24,9 @@ function misAJourQuotidienne() {
   try {
     regenererTout_();
   } catch (e) {
-    ecrireConfig_(classeur, CLES_CONFIG_.derniereGeneration, `Échec le ${formaterHorodatage_(new Date())} : ${e.message}`);
+    const langue = langueInterface_(classeur);
+    ecrireConfig_(classeur, CLES_CONFIG_.derniereGeneration,
+      t_(langue, 'echecGenerationLe', { date: formaterHorodatage_(new Date(), langue), message: e.message }));
   }
 }
 
@@ -38,24 +40,27 @@ function activerMiseAJourQuotidienne() {
     .atHour(config.heureMAJ)
     .everyDays(1)
     .create();
+  // Valeur stockée dans Config : reste en français comme le reste de la
+  // structure du classeur (voir Langues.gs), indépendamment de la langue
+  // de l'interface au moment où on l'écrit.
   ecrireConfig_(classeur, CLES_CONFIG_.statutMAJ, `Activée (vers ${config.heureMAJ}h)`);
   afficherDialogue_(
-    'Mise à jour quotidienne activée',
-    `<p class="ligne">${badge_('ok', 'Activée')} Le trombinoscope et l’organigramme seront régénérés ` +
-    `chaque jour vers ${config.heureMAJ}h.</p>`,
-    { hauteur: 180 }
+    t_(config.langue, 'titreMAJActivee'),
+    `<p class="ligne">${badge_('ok', t_(config.langue, 'badgeActivee'))} ` +
+    `${t_(config.langue, 'texteMAJActivee', { heure: config.heureMAJ })}</p>`,
+    { hauteur: 180, langue: config.langue }
   );
 }
 
 /** Point d'entrée menu : désactive la mise à jour quotidienne. */
 function desactiverMiseAJourQuotidienne() {
   const classeur = classeurCourant_();
+  const langue = langueInterface_(classeur);
   supprimerDeclencheurs_('misAJourQuotidienne');
   ecrireConfig_(classeur, CLES_CONFIG_.statutMAJ, 'Désactivée');
   afficherDialogue_(
-    'Mise à jour quotidienne désactivée',
-    `<p class="ligne">${badge_('attention', 'Désactivée')} La régénération automatique n’aura plus lieu ` +
-    'tant qu’elle n’est pas réactivée.</p>',
-    { hauteur: 170 }
+    t_(langue, 'titreMAJDesactivee'),
+    `<p class="ligne">${badge_('attention', t_(langue, 'badgeDesactivee'))} ${t_(langue, 'texteMAJDesactivee')}</p>`,
+    { hauteur: 170, langue }
   );
 }

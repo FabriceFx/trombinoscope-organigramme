@@ -21,6 +21,19 @@ Le choix se fait dans `Config > Source de l'effectif`, et se change à tout
 moment sans toucher au code. Les photos suivent le même principe, séparément
 (`Config > Source des photos` : dossier Drive ou photo de profil Workspace).
 
+## Interface en français ou en anglais
+
+`Config > Langue de l'interface` (« Français » ou « English ») pilote le
+menu, les boîtes de dialogue, l'onglet `Guide` et le texte des présentations
+générées (page de titre, titres de diapositive, messages d'alerte). Changer
+ce réglage prend effet immédiatement, y compris sur le `Guide` qui est
+régénéré à chaque installation.
+
+Les en-têtes et les clés des onglets `RH` et `Config`, ainsi que les valeurs
+des listes déroulantes (« RH manuel », « Dossier Drive », etc.), restent en
+français dans les deux cas : ce sont des identifiants dont dépend la lecture
+du classeur par le code, pas de la prose à traduire.
+
 ## Présentation soignée, pas seulement un export brut
 
 Chaque présentation s'ouvre sur une page de titre (nom de l'entreprise si
@@ -118,7 +131,7 @@ au dossier de photos.
   reprise de synchronisation.
 - `script.container.ui` — le menu et les boîtes de dialogue.
 
-## Limitations connues (v0.3)
+## Limitations connues (v0.4)
 
 - Les photos non carrées sont insérées à taille carrée forcée, sans
   recadrage intelligent.
@@ -132,6 +145,10 @@ au dossier de photos.
 - En mode annuaire, un effectif très nombreux peut demander plusieurs
   minutes avant que la régénération ne parte (reprise automatique par
   paliers d'une minute, sans action à refaire).
+- La traduction couvre ce que l'outil affiche (menu, dialogues, guide,
+  présentations) ; les en-têtes et clés des onglets `RH`/`Config` restent en
+  français dans les deux langues (voir « Interface en français ou en
+  anglais » ci-dessus).
 
 ## Banc d'essai
 
@@ -143,5 +160,6 @@ Simule Sheets, Slides, Drive, l'annuaire Google Workspace et les
 déclencheurs. Couvre la construction de l'arbre hiérarchique (managers
 introuvables, cycles), la disposition géométrique, la pagination, la
 synchronisation annuaire (fusion dans RH, reprise après interruption sans
-perte ni doublon) et la non-duplication des déclencheurs. À lancer avant
-chaque `clasp push`.
+perte ni doublon), la non-duplication des déclencheurs et le changement de
+langue de bout en bout (menu, guide, dialogues, présentations). À lancer
+avant chaque `clasp push`.

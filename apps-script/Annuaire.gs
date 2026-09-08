@@ -218,28 +218,28 @@ function reprendreSynchronisationAnnuaire() {
 
 /** Point d'entrée menu : synchronise RH depuis l'annuaire, sans régénérer les présentations. */
 function synchroniserEffectifMaintenant() {
+  const langue = langueInterface_(classeurCourant_());
   try {
     const resultat = synchroniserAnnuaire_(classeurCourant_());
     if (!resultat.termine) {
       afficherDialogue_(
-        'Synchronisation en cours',
-        `<p class="ligne">${badge_('attention', 'En attente')} L’effectif est nombreux : la synchronisation ` +
-        'reprendra automatiquement dans une minute.</p>',
-        { hauteur: 170 }
+        t_(langue, 'titreSyncEnCours'),
+        `<p class="ligne">${badge_('attention', t_(langue, 'badgeEnAttente'))} ${t_(langue, 'texteSyncEnCoursSimple')}</p>`,
+        { hauteur: 170, langue }
       );
       return;
     }
     afficherDialogue_(
-      'Synchronisation terminée',
-      `<p class="ligne">${badge_('ok', 'OK')} ${resultat.ajoutes} personne(s) ajoutée(s), ${resultat.misAJour} ` +
-      `mise(s) à jour dans l’onglet ${NOM_ONGLET_RH_}.</p>`,
-      { hauteur: 180 }
+      t_(langue, 'titreSyncTerminee'),
+      `<p class="ligne">${badge_('ok', t_(langue, 'badgeOk'))} ` +
+      `${t_(langue, 'texteSyncTerminee', { ajoutes: resultat.ajoutes, misAJour: resultat.misAJour, onglet: NOM_ONGLET_RH_ })}</p>`,
+      { hauteur: 180, langue }
     );
   } catch (e) {
     afficherDialogue_(
-      'La synchronisation a échoué',
-      `<p class="ligne">${badge_('erreur', 'Échec')} ${echapper_(e.message)}</p>`,
-      { hauteur: 190 }
+      t_(langue, 'titreSyncEchec'),
+      `<p class="ligne">${badge_('erreur', t_(langue, 'badgeEchec'))} ${echapper_(e.message)}</p>`,
+      { hauteur: 190, langue }
     );
   }
 }

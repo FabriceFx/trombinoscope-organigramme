@@ -146,9 +146,19 @@ class FauxTexte {
   getTextStyle() { return this.getRange().getTextStyle(); }
   getParagraphStyle() { return { setParagraphAlignment() { return this; } }; }
 }
+// Le vrai Slides refuse une largeur ou une hauteur non positive (« The width
+// should not be zero. ») — un faux qui l'accepterait aurait laissé passer
+// le défaut de disposerGrille_ (v0.4) sans qu'aucun test ne le voie.
+const verifierDimensions_ = (w, h) => {
+  if (!(w > 0) || !(h > 0)) {
+    throw new Error(`The width should not be zero. (w=${w}, h=${h})`);
+  }
+};
+
 class FauxDiapo {
   constructor() { this.shapes = []; this.lines = []; this.textboxes = []; this.images = []; this.removed = false; }
   insertShape(type, x, y, w, h) {
+    verifierDimensions_(w, h);
     const texte = new FauxTexte();
     const forme = {
       type, x, y, w, h,
@@ -164,12 +174,14 @@ class FauxDiapo {
     return forme;
   }
   insertTextBox(t, x, y, w, h) {
+    verifierDimensions_(w, h);
     const texte = new FauxTexte(); texte.setText(t);
     const boite = { x, y, w, h, getText() { return texte; } };
     this.textboxes.push(boite);
     return boite;
   }
   insertImage(blob, x, y, w, h) {
+    verifierDimensions_(w, h);
     const img = { blob, x, y, w, h };
     this.images.push(img);
     return img;
@@ -231,12 +243,18 @@ const ScriptApp = {
 // ---- faux UI ---------------------------------------------------------------
 let dernierAlerte = null;
 let dernierDialogue = null;
+let dernierMenu = null;
 const ui = {
   alert: (...args) => { dernierAlerte = args; return 'OK'; },
   showModalDialog: (sortie, titre) => { dernierDialogue = { titre, html: sortie.getContent() }; },
   ButtonSet: { OK: 'OK' },
-  createMenu: () => {
-    const m = { addItem() { return m; }, addSeparator() { return m; }, addToUi() { return m; } };
+  createMenu: (nom) => {
+    dernierMenu = { nom, items: [] };
+    const m = {
+      addItem(libelle, fn) { dernierMenu.items.push({ libelle, fn }); return m; },
+      addSeparator() { return m; },
+      addToUi() { return m; },
+    };
     return m;
   },
 };
@@ -255,7 +273,18 @@ let classeurActif = null;
 const sandbox = {
   console, Date, Math, String, Object, Array, Number, Error, JSON, Set, Map, Boolean, RegExp,
   Utilities: {
-    formatDate: (d, tz, fmt) => new Date(d).toISOString().replace('T', ' ').slice(0, 16),
+    // Doit vraiment tenir compte du fuseau (dont l'heure d'été) et du motif :
+    // un faux qui les ignore validerait un formaterHorodatage_ qui mélange
+    // les champs sans que rien ne le remarque.
+    formatDate: (d, tz, fmt) => {
+      const parties = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(new Date(d));
+      const val = (type) => parties.find((p) => p.type === type).value;
+      const champs = { yyyy: val('year'), MM: val('month'), dd: val('day'), HH: val('hour'), mm: val('minute') };
+      return fmt.replace(/yyyy|MM|dd|HH|mm/g, (jeton) => champs[jeton]);
+    },
     base64Decode: (s) => Buffer.from(s, 'base64'),
     newBlob: (octets, mime, nom) => ({ octets, mime, nom }),
   },
@@ -276,8 +305,9 @@ const sandbox = {
   DriveApp, SlidesApp, ScriptApp, AdminDirectory, PropertiesService,
 };
 vm.createContext(sandbox);
-for (const f of ['Commun.gs', 'Dialogues.gs', 'Structure.gs', 'Presentation.gs', 'Organigramme.gs',
-  'Trombinoscope.gs', 'Annuaire.gs', 'Regeneration.gs', 'Declencheurs.gs', 'Installation.gs', 'Menu.gs']) {
+for (const f of ['Commun.gs', 'Langues.gs', 'Dialogues.gs', 'Structure.gs', 'Presentation.gs',
+  'Organigramme.gs', 'Trombinoscope.gs', 'Annuaire.gs', 'Regeneration.gs', 'Declencheurs.gs',
+  'Installation.gs', 'Menu.gs']) {
   vm.runInContext(fs.readFileSync(P + f, 'utf8'), sandbox, { filename: f });
 }
 // Les `const` de portée globale ne deviennent pas des propriétés de l'objet
@@ -285,11 +315,12 @@ for (const f of ['Commun.gs', 'Dialogues.gs', 'Structure.gs', 'Presentation.gs',
 const pris = (nom) => vm.runInContext(nom, sandbox);
 const {
   VERSION_, lireConfig_, lireConfigBrute_, ecrireConfig_, lirePersonnes_, dossierPhotos_, trouverPhoto_,
-  nomComplet_, couleurService_, CLES_CONFIG_,
+  nomComplet_, couleurService_, CLES_CONFIG_, t_, formaterHorodatage_,
 } = Object.fromEntries([
   'VERSION_', 'lireConfig_', 'lireConfigBrute_', 'ecrireConfig_', 'lirePersonnes_', 'dossierPhotos_', 'trouverPhoto_',
-  'nomComplet_', 'couleurService_', 'CLES_CONFIG_',
+  'nomComplet_', 'couleurService_', 'CLES_CONFIG_', 't_', 'formaterHorodatage_',
 ].map((n) => [n, pris(n)]));
+const { onOpen } = Object.fromEntries(['onOpen'].map((n) => [n, pris(n)]));
 const { construireArbre_, compterSousArbre_ } = Object.fromEntries(
   ['construireArbre_', 'compterSousArbre_'].map((n) => [n, pris(n)])
 );
@@ -609,6 +640,26 @@ console.log('\nregenererTrombinoscope_ — pagination selon « personnes par lig
   verifier('couverture + 25 personnes sur 12/diapo → 3 diapos de contenu', presentation.getSlides().length, 4);
 }
 
+console.log('\nregenererTrombinoscope_ — « Personnes par ligne » trop grand pour la diapositive : réduit, jamais négatif');
+{
+  // Régression : avec parLigne=100 sur une diapositive de 720pt, la largeur
+  // de carte calculée devenait négative et Slides refusait avec
+  // « The width should not be zero. ». disposerGrille_ doit maintenant
+  // réduire parLigne plutôt que transmettre une largeur non positive.
+  const classeur = new FauxClasseur(['Config']);
+  classeurActif = classeur;
+  creerOngletConfig_(classeur);
+  ecrireConfig_(classeur, CLES_CONFIG_.parLigne, '100');
+  const config = lireConfig_(classeur);
+  const gens = Array.from({ length: 5 }, (_, i) => personne(`P${i}`, 'X', `p${i}@exemple.fr`, 'Poste', 'Service'));
+
+  let leve = null;
+  let rapport = null;
+  try { rapport = regenererTrombinoscope_(config, gens); } catch (e) { leve = e; }
+  verifier('aucune exception (aucune largeur non positive transmise à Slides)', leve, null);
+  verifier('« Personnes par ligne » a bien été réduit', rapport.parLigneAjustee > 0 && rapport.parLigneAjustee < 100, true);
+}
+
 // ---------------------------------------------------------------------------
 console.log('\nDéclencheur quotidien — activer/désactiver ne crée jamais de doublon');
 {
@@ -642,8 +693,8 @@ console.log('\nmisAJourQuotidienne — s’exécute sans dépendre d’une inter
   misAJourQuotidienne();
   verifier('aucune alerte affichée depuis le déclencheur (pas d’UI en contexte réel)', dernierAlerte, null);
   const brut = lireConfigBrute_(classeur);
-  verifier('Config note la dernière génération avec un horodatage',
-    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(brut[CLES_CONFIG_.derniereGeneration]), true);
+  verifier('Config note la dernière génération avec un horodatage (fr : jour/mois/année)',
+    /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(brut[CLES_CONFIG_.derniereGeneration]), true);
 }
 
 // ---------------------------------------------------------------------------
@@ -823,6 +874,81 @@ console.log('\ninstaller — listes déroulantes sur les réglages qui pilotent 
     config.validations[`${ligneEffectif}:2`], ['RH manuel', 'Annuaire Google Workspace']);
   verifier('« Source des photos » limitée aux deux valeurs reconnues par lireConfig_',
     config.validations[`${lignePhotos}:2`], ['Dossier Drive', 'Annuaire Google Workspace']);
+}
+
+console.log('\nt_ — traduction avec repli sur le français');
+{
+  verifier('clé connue en anglais', t_('en', 'menuRegenerer'), 'Regenerate now');
+  verifier('clé connue en français', t_('fr', 'menuRegenerer'), 'Régénérer maintenant');
+  verifier('substitution de variable', t_('en', 'titreOrganigrammeBranche', { nom: 'Alix Dupont' }), 'Org chart — Alix Dupont');
+  verifier('langue non reconnue : repli sur le français', t_('de', 'menuRegenerer'), 'Régénérer maintenant');
+}
+
+console.log('\nformaterHorodatage_ — l’ordre des champs suit la langue, jamais le nom du mois');
+{
+  const date = new Date(Date.UTC(2026, 8, 8, 12, 0)); // 8 septembre 2026, 12:00 UTC
+  verifier('fr : jour/mois/année', formaterHorodatage_(date, 'fr'), '08/09/2026 14:00');
+  verifier('en : mois/jour/année', formaterHorodatage_(date, 'en'), '09/08/2026 14:00');
+}
+
+console.log('\nonOpen — le menu suit Config.langue');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+
+  dernierMenu = null;
+  onOpen();
+  verifier('menu « RH » par défaut (français)', dernierMenu.nom, 'RH');
+  verifier('premier item en français', dernierMenu.items[0].libelle, 'Installer les onglets');
+
+  ecrireConfig_(classeur, CLES_CONFIG_.langue, 'English');
+  dernierMenu = null;
+  onOpen();
+  verifier('menu « HR » une fois la langue changée', dernierMenu.nom, 'HR');
+  verifier('premier item en anglais', dernierMenu.items[0].libelle, 'Set up the tabs');
+  verifier('bouton régénérer en anglais', dernierMenu.items.find((i) => i.fn === 'regenererMaintenant').libelle, 'Regenerate now');
+}
+
+console.log('\nGuide — suit Config.langue et se régénère à chaque installation');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+  const guideFr = classeur.getSheetByName('Guide').cells.map((l) => l[0]).join('\n');
+  verifier('guide en français par défaut', guideFr.includes('Guide — Trombinoscope & organigramme'), true);
+
+  ecrireConfig_(classeur, CLES_CONFIG_.langue, 'English');
+  installer();
+  const guideEn = classeur.getSheetByName('Guide').cells.map((l) => l[0]).join('\n');
+  verifier('guide en anglais après changement de langue, sans étape supplémentaire',
+    guideEn.includes('Guide — Staff directory & org chart'), true);
+}
+
+console.log('\nDialogues et présentations — le contenu suit Config.langue de bout en bout');
+{
+  const classeur = new FauxClasseur([]);
+  classeurActif = classeur;
+  installer();
+  ecrireConfig_(classeur, CLES_CONFIG_.langue, 'English');
+  const rh = classeur.getSheetByName('RH');
+  rh.appendRow(['Alix', 'Dupont', 'alix@exemple.fr', 'DG', 'Direction', '', '', 'Oui']);
+  rh.appendRow(['Ex', 'Salarie', 'ex@exemple.fr', 'Ancien', 'Direction', 'introuvable@exemple.fr', '', 'Oui']);
+
+  dernierDialogue = null;
+  regenererMaintenant();
+  verifier('bouton Fermer traduit', dernierDialogue.html.includes('>Close<'), true);
+  verifier('lien vers le trombinoscope traduit', dernierDialogue.html.includes('Open the staff directory'), true);
+  verifier('lien vers l’organigramme traduit', dernierDialogue.html.includes('Open the org chart'), true);
+  verifier('alerte de manager introuvable traduite', dernierDialogue.html.includes('not found in the headcount'), true);
+
+  const config = lireConfig_(classeur);
+  const presOrg = presentationsFake.get(config.organigrammeId);
+  verifier('titre de couverture de l’organigramme traduit',
+    presOrg.getSlides()[0].textboxes.some((t) => t.getText().asString() === 'Org Chart'), true);
+  const presTrombi = presentationsFake.get(config.trombinoscopeId);
+  verifier('titre de couverture du trombinoscope traduit',
+    presTrombi.getSlides()[0].textboxes.some((t) => t.getText().asString() === 'Staff Directory'), true);
 }
 
 console.log('\ncouleurService_ — déterministe, jamais aléatoire');

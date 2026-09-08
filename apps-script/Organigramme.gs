@@ -114,31 +114,32 @@ const brancherRacines_ = (racines) =>
 
 const regenererOrganigramme_ = (config, personnes) => {
   const classeur = classeurCourant_();
+  const langue = config.langue || LANGUE_DEFAUT_;
   if (personnes.length === 0) {
-    return { url: '', id: '', nbPersonnes: 0, alertes: ['Aucune personne active dans l’onglet RH.'] };
+    return { url: '', id: '', nbPersonnes: 0, alertes: [t_(langue, 'alerteAucunePersonne', { onglet: NOM_ONGLET_RH_ })] };
   }
 
-  const { racines, alertes } = construireArbre_(personnes);
+  const { racines, alertes } = construireArbre_(personnes, langue);
   const superRacine = { personne: null, enfants: racines };
   disposerArbre_(superRacine);
 
-  const presentation = ouvrirOuCreerPresentation_(config.organigrammeId, 'Organigramme');
+  const presentation = ouvrirOuCreerPresentation_(config.organigrammeId, t_(langue, 'titreDocOrganigramme'));
   const pageWidth = presentation.getPageWidth();
 
   const largeurDisponible = pageWidth - 2 * MARGE_DIAPO_;
   const echelleGlobale = Math.min(1, largeurDisponible / superRacine._largeur);
 
   regenererDansPresentation_(presentation, (pres) => {
-    ajouterDiapoCouverture_(pres, 'Organigramme', config, personnes);
+    ajouterDiapoCouverture_(pres, t_(langue, 'titreDocOrganigramme'), config, personnes);
     if (echelleGlobale >= ECHELLE_MIN_ORGANIGRAMME_) {
       const diapo = ajouterDiapoVierge_(pres);
-      ajouterTitreDiapo_(diapo, 'Organigramme général');
+      ajouterTitreDiapo_(diapo, t_(langue, 'titreOrganigrammeGeneral'));
       dessinerNoeud_(diapo, superRacine, MARGE_DIAPO_, 40, echelleGlobale);
     } else {
       const branches = brancherRacines_(racines);
 
       const vue = ajouterDiapoVierge_(pres);
-      ajouterTitreDiapo_(vue, 'Organigramme — vue d’ensemble');
+      ajouterTitreDiapo_(vue, t_(langue, 'titreVueEnsemble'));
       const superVue = { personne: null, enfants: racines.map((r) => ({
         personne: r.personne,
         enfants: (r.enfants || []).map((e) => ({ personne: e.personne, enfants: [] })),
@@ -147,13 +148,13 @@ const regenererOrganigramme_ = (config, personnes) => {
       const echelleVue = Math.min(1, largeurDisponible / superVue._largeur);
       dessinerNoeud_(vue, superVue, MARGE_DIAPO_, 40, echelleVue);
       vue.insertTextBox(
-        'Le détail de chaque service est présenté sur les diapositives suivantes.',
+        t_(langue, 'texteDetailServices'),
         MARGE_DIAPO_, presentation.getPageHeight() - 30, 400, 20
       ).getText().getTextStyle().setFontSize(9).setItalic(true).setForegroundColor('#5f6368');
 
       branches.forEach((branche) => {
         const diapo = ajouterDiapoVierge_(pres);
-        ajouterTitreDiapo_(diapo, `Organigramme — ${nomComplet_(branche.personne)}`);
+        ajouterTitreDiapo_(diapo, t_(langue, 'titreOrganigrammeBranche', { nom: nomComplet_(branche.personne) }));
         disposerArbre_(branche);
         const echelleBranche = Math.max(
           ECHELLE_MIN_ORGANIGRAMME_,

@@ -3,6 +3,46 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Ce projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.1] - 2026-09-08
+
+### Corrigé
+
+- **Régénération en échec avec « The width should not be zero. » quand
+  `Config > Personnes par ligne` était trop grand pour la largeur de la
+  diapositive.** `disposerGrille_` (Trombinoscope.gs) calculait la largeur
+  d'une carte sans jamais vérifier qu'elle restait positive ; au-delà d'un
+  certain nombre de colonnes, elle devenait négative et Slides refusait la
+  diapositive. `Personnes par ligne` est maintenant réduit autant que
+  nécessaire pour rester lisible, et le compte rendu le signale
+  (`« Personnes par ligne » réduit à N pour tenir sur la diapositive`)
+  plutôt que de le faire silencieusement.
+- Le banc d'essai simule désormais un vrai refus de Slides sur une largeur
+  ou une hauteur non positive (`verifierDimensions_`), et un nouveau cas de
+  test reproduit le réglage qui a produit ce défaut.
+
+## [0.4.0] - 2026-09-08
+
+### Ajouté
+
+- Interface bilingue français / anglais (`Config.langue`, liste déroulante
+  « Français » / « English ») : menu, boîtes de dialogue, onglet `Guide` et
+  texte des présentations générées (pages de titre, titres de diapositive,
+  messages d'alerte) suivent ce réglage. Nouveau module `Langues.gs`
+  centralisant les traductions (`t_`) et les deux versions du guide.
+- L'onglet `Guide` est désormais régénéré à chaque installation (c'est de la
+  documentation, jamais une donnée saisie à la main) : changer la langue
+  s'y répercute sans étape supplémentaire.
+- L'horodatage de génération suit l'ordre des champs de la langue choisie
+  (jour/mois pour le français, mois/jour pour l'anglais) — jamais de nom de
+  mois, qui suivrait la langue du compte Google plutôt que ce réglage.
+
+### Changé
+
+- Les en-têtes et clés des onglets `RH`/`Config`, ainsi que les valeurs des
+  listes déroulantes, restent en français dans les deux langues : ce sont
+  des identifiants techniques dont dépend la lecture du classeur, pas de la
+  prose à traduire. Documenté dans le `Guide` et dans le README.
+
 ## [0.3.0] - 2026-09-08
 
 ### Ajouté
