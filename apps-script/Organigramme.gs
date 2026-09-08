@@ -96,8 +96,11 @@ const dessinerNoeud_ = (diapo, noeud, origineX, origineY, echelle) => {
       // BENT plutôt que STRAIGHT : un connecteur en coude (vertical puis
       // horizontal) est la convention visuelle d'un organigramme, une
       // ligne diagonale se lit comme une erreur de mise en page.
+      // Mais Slides refuse un BENT de largeur nulle (enfant unique aligné),
+      // on décale donc de 0.1 point si l'alignement est parfait.
+      const xCible = Math.abs(xCentre - xCentreEnfant) < 0.1 ? xCentreEnfant + 0.1 : xCentreEnfant;
       const ligne = diapo.insertLine(
-        SlidesApp.LineCategory.BENT, xCentre, yBas, xCentreEnfant, yEnfants
+        SlidesApp.LineCategory.BENT, xCentre, yBas, xCible, yEnfants
       );
       ligne.getLineFill().setSolidFill('#9aa0a6');
       ligne.setWeight(1.5);

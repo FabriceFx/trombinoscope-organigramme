@@ -3,6 +3,18 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Ce projet suit le [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.2] - 2026-09-08
+
+### Corrigé
+
+- **Régénération de l'organigramme en échec avec « The width should not be
+  zero. » quand un parent n'avait qu'un seul enfant.** L'algorithme
+  alignait parfaitement le parent et l'enfant sur le même axe vertical ; la
+  ligne en coude (BENT) chargée de les relier se retrouvait alors avec une
+  largeur de 0, ce que Google Slides refuse de dessiner. L'alignement est
+  maintenant très légèrement décalé (0.1 point, invisible à l'œil) pour
+  garantir une largeur strictement positive et éviter le blocage.
+
 ## [0.4.1] - 2026-09-08
 
 ### Corrigé

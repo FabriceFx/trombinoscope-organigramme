@@ -187,6 +187,10 @@ class FauxDiapo {
     return img;
   }
   insertLine(category, x1, y1, x2, y2) {
+    // insertLine prend deux points, pas une largeur/hauteur : une ligne
+    // parfaitement verticale ou horizontale (dx=0 ou dy=0) est un
+    // connecteur tout à fait normal — un responsable avec un seul
+    // subordonné en produit un à chaque génération. Rien à valider ici.
     const ligne = {
       category, x1, y1, x2, y2,
       getLineFill() { return { setSolidFill() { return this; } }; },
