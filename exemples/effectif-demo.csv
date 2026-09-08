@@ -1,0 +1,31 @@
+Prénom,Nom,Email,Poste,Service,Manager,Photo,Actif
+Alix,Dupont,alix.dupont@exemple.fr,Présidente-Directrice Générale,Direction,,,Oui
+Marc,Girard,marc.girard@exemple.fr,Directeur Commercial,Commercial,alix.dupont@exemple.fr,,Oui
+Léa,Bernard,lea.bernard@exemple.fr,Responsable Grands Comptes,Commercial,marc.girard@exemple.fr,,Oui
+Hugo,Petit,hugo.petit@exemple.fr,Chargé de comptes,Commercial,lea.bernard@exemple.fr,,Oui
+Chloé,Robert,chloe.robert@exemple.fr,Chargée de comptes,Commercial,lea.bernard@exemple.fr,,Oui
+Nathan,Richard,nathan.richard@exemple.fr,Chargé de comptes,Commercial,lea.bernard@exemple.fr,,Oui
+Karim,Fabre,karim.fabre@exemple.fr,Responsable Export,Commercial,marc.girard@exemple.fr,,Oui
+Manon,Simon,manon.simon@exemple.fr,Chargée export,Commercial,karim.fabre@exemple.fr,,Oui
+Louis,Michel,louis.michel@exemple.fr,Chargé export,Commercial,karim.fabre@exemple.fr,,Oui
+Inès,Leroy,ines.leroy@exemple.fr,Chargée export,Commercial,karim.fabre@exemple.fr,,Oui
+Sophie,Moreau,sophie.moreau@exemple.fr,Directrice Qualité,Qualité,alix.dupont@exemple.fr,,Oui
+Julien,Laurent,julien.laurent@exemple.fr,Responsable Contrôle Qualité,Qualité,sophie.moreau@exemple.fr,,Oui
+Camille,Roux,camille.roux@exemple.fr,Technicienne Qualité,Qualité,julien.laurent@exemple.fr,,Oui
+Théo,Vincent,theo.vincent@exemple.fr,Technicien Qualité,Qualité,julien.laurent@exemple.fr,,Oui
+Sarah,Fournier,sarah.fournier@exemple.fr,Technicienne Qualité,Qualité,julien.laurent@exemple.fr,,Oui
+Emma,Faure,emma.faure@exemple.fr,Responsable Amélioration Continue,Qualité,sophie.moreau@exemple.fr,,Oui
+Lucas,Mercier,lucas.mercier@exemple.fr,Chargé d’amélioration continue,Qualité,emma.faure@exemple.fr,,Oui
+Jade,Blanc,jade.blanc@exemple.fr,Chargée d’amélioration continue,Qualité,emma.faure@exemple.fr,,Oui
+Thomas,Lefevre,thomas.lefevre@exemple.fr,Directeur de Production,Production,alix.dupont@exemple.fr,,Oui
+Anaïs,Garnier,anais.garnier@exemple.fr,Responsable Atelier A,Production,thomas.lefevre@exemple.fr,,Oui
+Maxime,Chevalier,maxime.chevalier@exemple.fr,Opérateur,Production,anais.garnier@exemple.fr,,Oui
+Léna,Francois,lena.francois@exemple.fr,Opératrice,Production,anais.garnier@exemple.fr,,Oui
+Enzo,Gauthier,enzo.gauthier@exemple.fr,Opérateur,Production,anais.garnier@exemple.fr,,Oui
+Zoé,Perrin,zoe.perrin@exemple.fr,Opératrice,Production,anais.garnier@exemple.fr,,Oui
+Yanis,Bonnet,yanis.bonnet@exemple.fr,Responsable Atelier B,Production,thomas.lefevre@exemple.fr,,Oui
+Clara,Morel,clara.morel@exemple.fr,Opératrice,Production,yanis.bonnet@exemple.fr,,Oui
+Nolan,Dumont,nolan.dumont@exemple.fr,Opérateur,Production,yanis.bonnet@exemple.fr,,Oui
+Lina,Fontaine,lina.fontaine@exemple.fr,Opératrice,Production,yanis.bonnet@exemple.fr,,Oui
+Nadia,Blanchard,nadia.blanchard@exemple.fr,Responsable Informatique,Informatique,alix.dupont@exemple.fr,,Oui
+Sacha,Adam,sacha.adam@exemple.fr,Ancien poste,Production,thomas.lefevre@exemple.fr,,Non
